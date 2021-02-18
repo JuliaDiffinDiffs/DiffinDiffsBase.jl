@@ -222,9 +222,10 @@ vcov(r::DIDResult) = r.vcov
 """
     vcov(r::DIDResult, name1::Union{String, Symbol}, name2::Union{String, Symbol}=name1)
     vcov(r::DIDResult, i::Int, j::Int=i)
-    vcov(r::DIDResult, inds1, inds2=inds1)
+    vcov(r::DIDResult, inds)
 
 Retrieve the covariance between two coefficients by name (as in `coefnames`) or integer index.
+Return the variance if only one name or index is specified.
 Return a variance-covariance matrix for selected coefficients
 if an iterable collection of names or integers are specified.
 
@@ -236,10 +237,10 @@ vcov(r::DIDResult, i::Int, j::Int=i) = r.vcov[i,j]
 vcov(r::DIDResult, name1::Union{String, Symbol}, name2::Union{String, Symbol}=name1) =
     vcov(r, r.coefinds[string(name1)], r.coefinds[string(name2)])
 
-function vcov(r::DIDResult, inds1, inds2=inds1)
-    inds1 = [i isa Int ? i : r.coefinds[string(i)] for i in inds1]
-    inds2 = [i isa Int ? i : r.coefinds[string(i)] for i in inds2]
-    return r.vcov[inds1, inds2]
+function vcov(r::DIDResult, inds)
+    # inds needs to be one-dimensional for the output to be a matrix
+    inds = [i isa Int ? i : r.coefinds[string(i)] for i in inds][:]
+    return r.vcov[inds, inds]
 end
 
 """

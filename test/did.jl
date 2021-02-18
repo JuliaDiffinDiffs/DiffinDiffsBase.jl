@@ -174,10 +174,9 @@ end
     @test vcov(r, :c5) == 25
     @test vcov(r, "rel: 1 & c: 1", :c5) == 5
     @test vcov(r, 1:2) == r.vcov[1:2, 1:2]
-    @test vcov(r, 5:-1:3, 1:2) == r.vcov[5:-1:3, 1:2]
+    @test vcov(r, 5:-1:3) == r.vcov[5:-1:3, 5:-1:3]
     @test vcov(r, (1, :c5, "rel: 1 & c: 1")) == r.vcov[[1,5,1], [1,5,1]]
-    @test vcov(r, [1, "rel: 1 & c: 1", :c5], (1, :c5, "rel: 1 & c: 1")) ==
-        r.vcov[[1,1,5], [1,5,1]]
+    @test vcov(r, [1 :c5 "rel: 1 & c: 1"]) == r.vcov[[1,5,1], [1,5,1]]
     @test vcov(x->true, r) == r.vcov[1:4, 1:4]
     @test vcov(x->x.rel==1, r) == r.vcov[1:2, 1:2]
 
