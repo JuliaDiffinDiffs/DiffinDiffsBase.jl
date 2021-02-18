@@ -209,7 +209,7 @@ a predicate applied to each row of `treatinds`.
     This method only selects estimates for treatment coefficients.
     Covariates are not taken into account.
 """
-coef(r::DIDResult, by::Function) = view(r.coef, 1:length(r.treatinds))[map(by, r.treatinds)]
+coef(r::DIDResult, by::Function) = view(r.coef, 1:length(r.treatinds))[by.(r.treatinds)]
 
 """
     vcov(r::DIDResult)
@@ -255,7 +255,7 @@ return a matrix for coefficients satisfying all the conditions.
 """
 function vcov(r::DIDResult, by::Function)
     N = length(r.treatinds)
-    inds = map(by, r.treatinds)
+    inds = by.(r.treatinds)
     return view(r.vcov, 1:N, 1:N)[inds, inds]
 end
 
