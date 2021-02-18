@@ -164,8 +164,8 @@ end
     @test coef(r, 5:-1:3) == [5.0, 4.0, 3.0]
     @test coef(r, (1, :c5, "rel: 1 & c: 1")) == [1.0, 5.0, 1.0]
     @test coef(r, [1 "rel: 1 & c: 1" :c5]) == [1.0 1.0 5.0]
-    @test coef(r, x->true) == collect(Float64, 1:4)
-    @test coef(r, x->x.rel==1) == [1.0, 2.0]
+    @test coef(x->true, r) == collect(Float64, 1:4)
+    @test coef(x->x.rel==1, r) == [1.0, 2.0]
 
     @test vcov(r) == r.vcov
     @test vcov(r, 1) == 1
@@ -178,8 +178,8 @@ end
     @test vcov(r, (1, :c5, "rel: 1 & c: 1")) == r.vcov[[1,5,1], [1,5,1]]
     @test vcov(r, [1, "rel: 1 & c: 1", :c5], (1, :c5, "rel: 1 & c: 1")) ==
         r.vcov[[1,1,5], [1,5,1]]
-    @test vcov(r, x->true) == r.vcov[1:4, 1:4]
-    @test vcov(r, x->x.rel==1) == r.vcov[1:2, 1:2]
+    @test vcov(x->true, r) == r.vcov[1:4, 1:4]
+    @test vcov(x->x.rel==1, r) == r.vcov[1:2, 1:2]
 
     @test nobs(r) == 6
     @test dof_residual(r) == 5

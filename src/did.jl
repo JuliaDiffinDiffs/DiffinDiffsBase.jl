@@ -200,16 +200,17 @@ coef(r::DIDResult, i::Int) = r.coef[i]
 coef(r::DIDResult, inds) = [coef(r, ind) for ind in inds]
 
 """
-    coef(r::DIDResult, by::Function)
+    coef(f::Function, r::DIDResult)
 
-Return a vector of selected point estimates for treatment effects based on
-a predicate applied to each row of `treatinds`.
+Return a vector of point estimates for treatment coefficients
+selected based on whether `f` returns `true` or `false`
+for each corresponding row in `treatinds`.
 
 !!! note
     This method only selects estimates for treatment coefficients.
     Covariates are not taken into account.
 """
-coef(r::DIDResult, by::Function) = view(r.coef, 1:length(r.treatinds))[by.(r.treatinds)]
+coef(f::Function, r::DIDResult) = view(r.coef, 1:length(r.treatinds))[f.(r.treatinds)]
 
 """
     vcov(r::DIDResult)
@@ -242,20 +243,19 @@ function vcov(r::DIDResult, inds1, inds2=inds1)
 end
 
 """
-    vcov(r::DIDResult, by::Function)
+    vcov(f::Function, r::DIDResult)
 
-Return a variance-covariance matrix for selected treatment coefficients based on
-a predicate applied to each row of `treatinds`.
-If pairs of column names of `treatinds` and predicates are specified,
-return a matrix for coefficients satisfying all the conditions.
+Return a variance-covariance matrix for treatment coefficients
+selected based on whether `f` returns `true` or `false`
+for each corresponding row in `treatinds`.
 
 !!! note
-    These methods only selects estimates for treatment coefficients.
+    This method only selects estimates for treatment coefficients.
     Covariates are not taken into account.
 """
-function vcov(r::DIDResult, by::Function)
+function vcov(f::Function, r::DIDResult)
     N = length(r.treatinds)
-    inds = by.(r.treatinds)
+    inds = f.(r.treatinds)
     return view(r.vcov, 1:N, 1:N)[inds, inds]
 end
 
