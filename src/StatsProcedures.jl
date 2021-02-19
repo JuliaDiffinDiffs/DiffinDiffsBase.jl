@@ -469,8 +469,8 @@ function proceed(sps::AbstractVector{<:StatsSpec};
                 ret, share = ret
             else
                 fname = typeof(_f(step)).name.mt.name
-                stepname = step.step.parameters[1]
-                error("unexpected $(typeof(ret)) returned from $fname associated with StatsStep $stepname")
+                stepname = typeof(step.step).parameters[1]
+                error("unexpected type $(typeof(ret)) of object returned from $fname associated with StatsStep $stepname")
             end
             ntask += 1
             ntask_total += 1
