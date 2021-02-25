@@ -302,7 +302,6 @@ testformatter(nt::NamedTuple) = (haskey(nt, :name) ? nt.name : "", nt.p, (a=nt.a
     @test proceed([s8], keep=:result) == NamedTuple[NamedTuple()]
 
     @test_throws ArgumentError proceed(StatsSpec[])
-    @test_throws ErrorException proceed([s9])
 end
 
 @testset "_parse!" begin

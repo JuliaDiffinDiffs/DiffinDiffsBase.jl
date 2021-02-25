@@ -320,6 +320,10 @@ function pool(ps::AbstractStatsProcedure...)
     return PooledStatsProcedure(ps, shared)
 end
 
+# A shortcut for the simple case
+pool(p::AbstractStatsProcedure) =
+    PooledStatsProcedure((p,), [SharedStatsStep(s, 1) for s in p])
+
 length(p::PooledStatsProcedure) = length(p.steps)
 eltype(::Type{PooledStatsProcedure}) = SharedStatsStep
 firstindex(p::PooledStatsProcedure) = firstindex(p.steps)
@@ -465,49 +469,54 @@ function proceed(sps::AbstractVector{<:StatsSpec};
     nsps = length(sps)
     nsps == 0 && throw(ArgumentError("expect a nonempty vector"))
     traces = Vector{NamedTuple}(undef, nsps)
-    for i in 1:nsps
+    @inbounds for i in 1:nsps
         traces[i] = sps[i].args
     end
-    gids = groupfind(r->_procedure(r)(), sps)
+    gids = IdDict{AbstractStatsProcedure, Vector{Int}}()
+    @inbounds for i in eachindex(sps)
+        push!(get!(Vector{Int}, gids, _procedure(sps[i])()), i)
+    end
     steps = pool((p for p in keys(gids))...)
+    tasks = IdDict{Tuple, Vector{Int}}()
     ntask_total = 0
-    for step in steps
+
+    @inbounds for step in steps
         ntask = 0
         verbose && printstyled("Running ", step, "...")
-        taskids = vcat((gids[steps.procs[i]] for i in _sharedby(step))...)
-        tasks = groupview(r->groupargs(step, r), view(traces, taskids))
-        for (ins, subtb) in pairs(tasks)
-            ret = _f(step)(ins..., combinedargs(step, subtb)...)
-            if ret isa Tuple{<:NamedTuple, Bool}
-                ret, share = ret
-            else
-                fname = typeof(_f(step)).name.mt.name
-                stepname = typeof(step.step).parameters[1]
-                error("unexpected type $(typeof(ret)) of object returned from $fname associated with StatsStep $stepname")
+        for i in _sharedby(step)
+            taskids = gids[steps.procs[i]]
+            for j in taskids
+                push!(get!(Vector{Int}, tasks, groupargs(step, traces[j])), j)
             end
-            ntask += 1
-            ntask_total += 1
+        end
+        for (gargs, ids) in tasks
+            ret, share = _f(step)(gargs..., combinedargs(step, view(traces, ids))...)
             if share
-                for i in eachindex(subtb)
-                    subtb[i] = merge(subtb[i], ret)
+                for id in ids
+                    traces[id] = merge(traces[id], ret)
                 end
             else
-                for i in eachindex(subtb)
-                    subtb[i] = merge(subtb[i], deepcopy(ret))
+                for id in ids
+                    traces[id] = merge(traces[id], deepcopy(ret))
                 end
             end
         end
+        ntask = length(tasks)
+        ntask_total += ntask
+        empty!(tasks)
         nprocs = length(_sharedby(step))
         verbose && printstyled("Finished ", ntask, ntask > 1 ? " tasks" : " task", " for ",
             nprocs, nprocs > 1 ? " procedures\n" : " procedure\n")
     end
+
     nprocs = length(steps.procs)
     verbose && printstyled("All steps finished (", ntask_total,
         ntask_total > 1 ? " tasks" : " task", " for ", nprocs,
         nprocs > 1 ? " procedures)\n" : " procedure)\n", bold=true, color=:green)
-    for i in 1:nsps
+    @inbounds for i in 1:nsps
         traces[i] = result(_procedure(sps[i]), traces[i])
     end
+
     if keepall
         return traces
     elseif keep === nothing
@@ -517,11 +526,11 @@ function proceed(sps::AbstractVector{<:StatsSpec};
         if keep isa Symbol
             keep = (keep,)
         else
-            eltype(keep) == Symbol ||
-                throw(ArgumentError("expect Symbol or collections of Symbols for the value of option `keep`"))
+            eltype(keep) == Symbol || throw(ArgumentError(
+                "expect Symbol or collections of Symbols for the value of option `keep`"))
         end
         in(:result, keep) || (keep = (keep..., :result))
-        for i in 1:nsps
+        @inbounds for i in 1:nsps
             names = ((n for n in keep if haskey(traces[i], n))...,)
             traces[i] = NamedTuple{names}(traces[i])
         end
