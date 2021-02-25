@@ -94,16 +94,14 @@ See also [`proceed`](@ref).
 """
 combinedargs(::StatsStep, ::Any) = ()
 
+copyargs(::StatsStep) = ()
+
 function (step::StatsStep{A,F})(@nospecialize(ntargs::NamedTuple);
         verbose::Bool=false) where {A,F}
     haskey(ntargs, :verbose) && (verbose = ntargs.verbose)
     verbose && printstyled("Running ", step, "\n", color=:green)
     ret = F.instance(groupargs(step, ntargs)..., combinedargs(step, (ntargs,))...)
-    if ret isa Tuple{<:NamedTuple, Bool}
-        return merge(ntargs, ret[1])
-    else
-        error("unexpected $(typeof(ret)) returned from $(F.name.mt.name) associated with StatsStep $A")
-    end
+    return merge(ntargs, ret)
 end
 
 (step::StatsStep)(; verbose::Bool=false) = step(NamedTuple(), verbose=verbose)
@@ -197,6 +195,7 @@ _sharedby(s::SharedStatsStep) = s.ids
 _f(s::SharedStatsStep) = _f(s.step)
 groupargs(s::SharedStatsStep, @nospecialize(ntargs::NamedTuple)) = groupargs(s.step, ntargs)
 combinedargs(s::SharedStatsStep, v::AbstractArray) = combinedargs(s.step, v)
+copyargs(s::SharedStatsStep) = copyargs(s.step)
 
 ==(x::SharedStatsStep, y::SharedStatsStep) =
     x.step == y.step && x.ids == y.ids
@@ -443,6 +442,11 @@ function show(io::IO, ::MIME"text/plain", sp::StatsSpec{T}) where T
     _show_args(io, sp)
 end
 
+function _count!(objcount::IdDict, obj)
+    count = get(objcount, obj, 0)
+    objcount[obj] = count + 1
+end
+
 """
     proceed(sps::AbstractVector{<:StatsSpec}; kwargs...)
 
@@ -468,44 +472,54 @@ function proceed(sps::AbstractVector{<:StatsSpec};
         verbose::Bool=false, keep=nothing, keepall::Bool=false)
     nsps = length(sps)
     nsps == 0 && throw(ArgumentError("expect a nonempty vector"))
+
+    gids = IdDict{AbstractStatsProcedure, Vector{Int}}()
+    objcount = IdDict{Any, Int}()
     traces = Vector{NamedTuple}(undef, nsps)
     @inbounds for i in 1:nsps
-        traces[i] = sps[i].args
-    end
-    gids = IdDict{AbstractStatsProcedure, Vector{Int}}()
-    @inbounds for i in eachindex(sps)
         push!(get!(Vector{Int}, gids, _procedure(sps[i])()), i)
+        args = sps[i].args
+        foreach(x->_count!(objcount, x), args)
+        traces[i] = args
     end
+    
     steps = pool((p for p in keys(gids))...)
     tasks = IdDict{Tuple, Vector{Int}}()
     ntask_total = 0
-
     @inbounds for step in steps
         ntask = 0
-        verbose && printstyled("Running ", step, "...")
+        verbose && print("Running ", step, "...")
+        # Group arguments by ===
         for i in _sharedby(step)
             taskids = gids[steps.procs[i]]
             for j in taskids
                 push!(get!(Vector{Int}, tasks, groupargs(step, traces[j])), j)
             end
         end
+
         for (gargs, ids) in tasks
-            ret, share = _f(step)(gargs..., combinedargs(step, view(traces, ids))...)
-            if share
-                for id in ids
-                    traces[id] = merge(traces[id], ret)
+            # Handle potential in-place operations on mutable objects
+            nids = length(ids)
+            icopy = copyargs(step)
+            if length(icopy) > 0
+                gargs = Any[gargs...]
+                for i in copyargs(step)
+                    a = gargs[i]
+                    objcount[a] > nids && (gargs[i] = deepcopy(a))
                 end
-            else
-                for id in ids
-                    traces[id] = merge(traces[id], deepcopy(ret))
-                end
+            end
+
+            ret = _f(step)(gargs..., combinedargs(step, view(traces, ids))...)
+            for id in ids
+                foreach(x->_count!(objcount, x), ret)
+                traces[id] = merge(traces[id], ret)
             end
         end
         ntask = length(tasks)
         ntask_total += ntask
         empty!(tasks)
         nprocs = length(_sharedby(step))
-        verbose && printstyled("Finished ", ntask, ntask > 1 ? " tasks" : " task", " for ",
+        verbose && print("Finished ", ntask, ntask > 1 ? " tasks" : " task", " for ",
             nprocs, nprocs > 1 ? " procedures\n" : " procedure\n")
     end
 
