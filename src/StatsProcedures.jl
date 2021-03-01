@@ -460,7 +460,7 @@ becomes an element in the returned `Vector` for each [`StatsSpec`](@ref).
 When either `keep` or `keepall` is specified,
 a `NamedTuple` with additional objects is formed for each [`StatsSpec`](@ref).
 """
-function proceed(sps::AbstractVector{<:StatsSpec};
+function proceed(sps::Vector{<:StatsSpec};
         verbose::Bool=false, keep=nothing, keepall::Bool=false, pause::Int=0)
     nsps = length(sps)
     nsps == 0 && throw(ArgumentError("expect a nonempty vector"))

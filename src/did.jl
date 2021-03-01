@@ -57,7 +57,7 @@ end
 
 Return a tuple of objects that can be accepted by
 the constructor of [`StatsSpec`](@ref).
-If no [`DiffinDiffsEstimator`](@ref) is found in `ntargs`,
+If no [`DiffinDiffsEstimator`](@ref) is found in `args`,
 try to select one based on other information.
 
 This function is required for `@specset` to work properly.
@@ -114,7 +114,7 @@ The order of the arguments is irrelevant.
 # Arguments
 - `[option option=val ...]`: optional settings for @did including keyword arguments passed to an instance of [`StatsSpec`](@ref).
 - `name::AbstractString`: an optional name for the [`StatsSpec`](@ref).
-- `args... kwargs...`: a list of arguments to be processed by [`parse_didargs`](@ref) and [`valid_didargs`](@ref).
+- `args... kwargs...`: a list of arguments to be processed by [`parse_didargs!`](@ref) and [`valid_didargs`](@ref).
 
 # Notes
 When expanded outside [`@specset`](@ref),
