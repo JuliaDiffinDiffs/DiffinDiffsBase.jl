@@ -31,6 +31,10 @@ end
 end
 
 @testset "parse_didargs!" begin
+    args = Dict{Symbol,Any}(:xterms=>(term(:x),))
+    _totermset!(args, :xterms)
+    @test args[:xterms] == TermSet(term(:x)=>nothing)
+
     @test parse_didargs!(Any["test"], Dict{Symbol,Any}()) == Dict{Symbol,Any}(:name=>"test")
 
     args = parse_didargs!([TestDID, TR, PR], Dict{Symbol,Any}(:a=>1, :b=>2))
