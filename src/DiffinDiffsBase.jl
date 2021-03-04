@@ -46,7 +46,7 @@ export cb,
        notyettreated,
        istreated,
 
-       Terms,
+       TermSet,
        eachterm,
        TreatmentTerm,
        treat,
@@ -60,6 +60,7 @@ export cb,
        @specset,
 
        CheckData,
+       GroupTerms,
        CheckVars,
        MakeWeights,
 
