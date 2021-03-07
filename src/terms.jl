@@ -155,8 +155,6 @@ function parse_intercept!(ts::TermSet)
             hasomitsintercept = true
         end
     end
-    hasintercept && (ts[InterceptTerm{true}()] = nothing)
-    hasomitsintercept && (ts[InterceptTerm{false}()] = nothing)
     return hasintercept, hasomitsintercept
 end
 
