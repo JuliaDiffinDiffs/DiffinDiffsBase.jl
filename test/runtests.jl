@@ -3,10 +3,10 @@ using DiffinDiffsBase
 
 using DataFrames
 using DiffinDiffsBase: @fieldequal, unpack, @unpack, hastreat, parse_treat,
-    isintercept, isomitsintercept, parse_intercept!,
+    isintercept, isomitsintercept, parse_intercept!, _relabel!,
     _f, _byid, groupargs, copyargs, pool, checkdata, groupterms, checkvars!, makeweights,
     _totermset!, parse_didargs!, _treatnames
-using PooledArrays: PooledArray
+using PooledArrays: PooledArray, _label
 using StatsBase: Weights, UnitWeights
 using StatsModels: termvars
 using TypedTables: Table

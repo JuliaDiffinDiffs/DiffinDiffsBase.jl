@@ -1,15 +1,21 @@
-function _relabel!(a1::Array, a2::AbstractArray)
-    labels, invpool, pool = _label(a2)
-    _relabel!(a1, labels, length(pool))
-end
-
-_relabel!(a1::Array, a2::PooledArray) = _relabel!(a1, a2.refs, length(a2.pool))
-
 # Obtain unique labels for all row-wise pairs of values from a1 and a2
-function _relabel!(a1::Array, a2::Array, mult::Integer)
+function _relabel!(a1::Array, mult1::Integer, a2::AbstractArray)
     size(a1) == size(a2) || throw(DimensionMismatch(
         "cannot match array of size $(size(a1)) with array of size $(size(a2))"))
-    a1 .+= mult .* a2
+    refs, invpool, pool = _label(a2)
+    _mult!(a1, mult1, refs)
+    return mult1 * length(pool)
+end
+
+function _relabel!(a1::Array, mult1::Integer, a2::PooledArray)
+    size(a1) == size(a2) || throw(DimensionMismatch(
+        "cannot match array of size $(size(a1)) with array of size $(size(a2))"))
+    _mult!(a1, mult1, a2.refs)
+    return mult1 * length(a2.pool)
+end
+
+function _mult!(a1::Array, mult1::Integer, a2::Array)
+    a1 .+= mult1 .* (a2 .- 1)
 end
 
 # A variant of SplitApplyCombine.groupfind using IdDict instead of Dictionaries.Dictionary
@@ -52,11 +58,17 @@ function findcell(cellnames, data, esample=Colon())
     isempty(cols) && throw(ArgumentError("empty data columns"))
     ncol = size(cols, 2)
     pooled = cols[1] isa PooledArray
-    refs = pooled ? cols[1].refs : _label(cols[1])[1]
+    if pooled
+        refs = cols[1].refs
+        mult = length(cols[1].pool)
+    else
+        refs, invpool, pool = _label(cols[1])
+        mult = length(pool)
+    end
     if ncol > 1
         pooled && (refs = copy(refs))
         for n in 2:ncol
-            _relabel!(refs, cols[n])
+            mult = _relabel!(refs, mult, cols[n])
         end
     end
     cellrows = _cellrows(cols, _groupfind(refs))

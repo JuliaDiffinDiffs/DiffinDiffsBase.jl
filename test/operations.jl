@@ -1,3 +1,18 @@
+@testset "_relabel!" begin
+    hrs = exampledata("hrs")
+    refs, invpool, pool = _label(hrs.wave)
+    mult = _relabel!(refs, length(pool), refs)
+    @test length(unique(refs)) == 5
+    @test mult == 25
+
+    mult = 5
+    mult = _relabel!(refs, mult, hrs.wave_hosp)
+    @test length(unique(refs)) == 20
+    @test mult == 20
+
+    @test_throws DimensionMismatch _relabel!(refs, 20, reshape(hrs.wave_hosp, size(hrs, 1), 1))
+end
+
 @testset "findcell" begin
     hrs = exampledata("hrs")
     df = DataFrame(hrs)
