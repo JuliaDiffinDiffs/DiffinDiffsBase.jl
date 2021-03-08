@@ -42,29 +42,27 @@ function findcell(cellnames, data, esample=Colon())
     cols = SubColumns(data, cellnames, esample)
     ncol = size(cols, 2)
     ncol == 0 && throw(ArgumentError("no data column is found"))
-    pa = getcolumn(data, cellnames[1])
-    pooled = pa isa PooledArray
-    if pooled
-        refs = view(pa.refs, esample)
-        mult = length(pa.pool)
-    else
-        refs, invpool, pool = _label(cols[1])
-        mult = length(pool)
+    col = cols[1]
+    refs = refarray(col)
+    pool = refpool(col)
+    pooled = pool !== nothing
+    if !pooled
+        refs, invpool, pool = _label(col)
     end
+    mult = length(pool)
     if ncol > 1
         # Make a copy to be used as cache
         pooled && (refs = collect(refs))
         @inbounds for n in 2:ncol
-            pa = getcolumn(data, cellnames[n])
-            if pa isa PooledArray
-                a2 = view(pa.refs, esample)
-                mult2 = length(pa.pool)
-            else
-                a2, invpool, pool = _label(cols[n])
-                mult2 = length(pool)
-            end 
-            _mult!(refs, mult, a2)
-            mult = mult * mult2
+            col = cols[n]
+            refsn = refarray(col)
+            pool = refpool(col)
+            if pool === nothing
+                refsn, invpool, pool = _label(col)
+            end
+            multn = length(pool)
+            _mult!(refs, mult, refsn)
+            mult = mult * multn
         end
     end
     cellrows = _cellrows(cols, _groupfind(refs))

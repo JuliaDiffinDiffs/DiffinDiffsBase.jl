@@ -2,9 +2,10 @@ module DiffinDiffsBase
 
 using CSV: File
 using Combinatorics: combinations
+using DataAPI: refarray, refpool
 using MacroTools: @capture, isexpr, postwalk
 using Missings: disallowmissing
-using PooledArrays: PooledArray, _label
+using PooledArrays: _label
 using Reexport
 using StatsBase: Weights, uweights
 @reexport using StatsModels
