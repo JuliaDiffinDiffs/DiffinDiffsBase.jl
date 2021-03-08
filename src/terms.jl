@@ -135,7 +135,7 @@ isomitsintercept(t::AbstractTerm) =
 """
     parse_intercept(ts::TermSet)
 
-Convert any `ConstantTerm` to `InterceptTerm`
+Remove any `ConstantTerm` or `InterceptTerm`
 and return Boolean values indicating whether terms explictly requiring
 including/excluding the intercept exist.
 
