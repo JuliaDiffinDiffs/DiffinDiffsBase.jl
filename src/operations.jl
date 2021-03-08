@@ -1,20 +1,5 @@
-# Obtain unique labels for all row-wise pairs of values from a1 and a2
-function _relabel!(a1::Array, mult1::Integer, a2::AbstractArray)
-    size(a1) == size(a2) || throw(DimensionMismatch(
-        "cannot match array of size $(size(a1)) with array of size $(size(a2))"))
-    refs, invpool, pool = _label(a2)
-    _mult!(a1, mult1, refs)
-    return mult1 * length(pool)
-end
-
-function _relabel!(a1::Array, mult1::Integer, a2::PooledArray)
-    size(a1) == size(a2) || throw(DimensionMismatch(
-        "cannot match array of size $(size(a1)) with array of size $(size(a2))"))
-    _mult!(a1, mult1, a2.refs)
-    return mult1 * length(a2.pool)
-end
-
-function _mult!(a1::Array, mult1::Integer, a2::Array)
+# Obtain unique labels for row-wise pairs of values from a1 and a2 when mult1 is large enough
+function _mult!(a1::Array, mult1::Integer, a2::AbstractArray)
     a1 .+= mult1 .* (a2 .- 1)
 end
 
@@ -55,20 +40,31 @@ rather than those for the full `data`.
 """
 function findcell(cellnames, data, esample=Colon())
     cols = SubColumns(data, cellnames, esample)
-    isempty(cols) && throw(ArgumentError("empty data columns"))
     ncol = size(cols, 2)
-    pooled = cols[1] isa PooledArray
+    ncol == 0 && throw(ArgumentError("no data column is found"))
+    pa = getcolumn(data, cellnames[1])
+    pooled = pa isa PooledArray
     if pooled
-        refs = cols[1].refs
-        mult = length(cols[1].pool)
+        refs = view(pa.refs, esample)
+        mult = length(pa.pool)
     else
         refs, invpool, pool = _label(cols[1])
         mult = length(pool)
     end
     if ncol > 1
-        pooled && (refs = copy(refs))
-        for n in 2:ncol
-            mult = _relabel!(refs, mult, cols[n])
+        # Make a copy to be used as cache
+        pooled && (refs = collect(refs))
+        @inbounds for n in 2:ncol
+            pa = getcolumn(data, cellnames[n])
+            if pa isa PooledArray
+                a2 = view(pa.refs, esample)
+                mult2 = length(pa.pool)
+            else
+                a2, invpool, pool = _label(cols[n])
+                mult2 = length(pool)
+            end 
+            _mult!(refs, mult, a2)
+            mult = mult * mult2
         end
     end
     cellrows = _cellrows(cols, _groupfind(refs))
