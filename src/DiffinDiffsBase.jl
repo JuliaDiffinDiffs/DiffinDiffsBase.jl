@@ -10,7 +10,7 @@ using Reexport
 using StatsBase: Weights, uweights
 @reexport using StatsModels
 using Tables
-using Tables: istable, columnnames, getcolumn
+using Tables: AbstractColumns, table, istable, columnnames, getcolumn
 
 import Base: ==, show, union
 import Base: eltype, firstindex, lastindex, getindex, iterate, length, sym_in
@@ -54,7 +54,8 @@ export cb,
        TreatmentTerm,
        treat,
 
-       SubColumns,
+       VecColumnTable,
+       subcolumns,
 
        findcell,
 
@@ -84,7 +85,7 @@ include("utils.jl")
 include("treatments.jl")
 include("parallels.jl")
 include("terms.jl")
-include("SubColumns.jl")
+include("tables.jl")
 include("operations.jl")
 include("StatsProcedures.jl")
 include("procedures.jl")

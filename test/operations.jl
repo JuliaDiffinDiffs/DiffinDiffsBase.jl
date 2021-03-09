@@ -1,27 +1,28 @@
 @testset "findcell" begin
     hrs = exampledata("hrs")
     @test_throws ArgumentError findcell((), hrs)
-    @test findcell((:wave,), hrs, falses(size(hrs, 1))) == IdDict{Tuple, Vector{Int}}()
+    @test findcell((:wave,), hrs, falses(size(hrs, 1))) ==
+        (table(Matrix{Any}(undef, 0, 1), header=[:wave]), Vector{Int}[Int[]])
 
-    cellrows = findcell((:wave,), hrs)
-    cells = sort(collect(keys(cellrows)))
-    @test cells == Tuple[(7,), (8,), (9,), (10,), (11,)]
-    @test cellrows[(7,)] == findall(x->x==7, hrs.wave)
+    cells, rows = findcell((:wave,), hrs)
+    @test getfield(cells, :matrix) == reshape(collect(Any, 7:11), 5, 1)
+    @test cells.wave == collect(Any, 7:11)
+    @test length(rows) == 5
+    @test rows[1] == findall(x->x==7, hrs.wave)
 
     df = DataFrame(hrs)
     df.wave = PooledArray(df.wave)
-    @test findcell((:wave,), df) == cellrows
+    @test findcell((:wave,), df) == (cells, rows)
 
     esample = hrs.wave.!=11
-    cellrows = findcell((:wave, :wave_hosp), hrs, esample)
-    @test length(cellrows) == 16
-    cells = sort(collect(keys(cellrows)))
-    @test cells[1] == (7,8)
-    @test cellrows[(7,8)] == intersect(findall(x->x==7, view(hrs.wave, esample)), findall(x->x==8, view(hrs.wave_hosp, esample)))
+    cells, rows = findcell((:wave, :wave_hosp), hrs, esample)
+    @test length(cells) == length(rows) == 16
+    @test getfield(cells, :matrix)[1,:] == [7, 8]
+    @test rows[1] == intersect(findall(x->x==7, view(hrs.wave, esample)), findall(x->x==8, view(hrs.wave_hosp, esample)))
 
     df.wave_hosp = PooledArray(df.wave_hosp)
-    @test findcell((:wave, :wave_hosp), df, esample) == cellrows
+    @test findcell((:wave, :wave_hosp), df, esample) == (cells, rows)
 
-    cellrows = findcell((:wave, :wave_hosp, :male), hrs)
-    @test length(cellrows) == 40
+    cells, rows = findcell((:wave, :wave_hosp, :male), hrs)
+    @test length(cells) == 40
 end
