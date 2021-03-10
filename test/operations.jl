@@ -1,28 +1,38 @@
 @testset "findcell" begin
     hrs = exampledata("hrs")
     @test_throws ArgumentError findcell((), hrs)
-    @test findcell((:wave,), hrs, falses(size(hrs, 1))) ==
-        (table(Matrix{Any}(undef, 0, 1), header=[:wave]), Vector{Int}[Int[]])
+    @test_throws ArgumentError findcell((:wave,), hrs, falses(size(hrs, 1)))
 
-    cells, rows = findcell((:wave,), hrs)
-    @test getfield(cells, :matrix) == reshape(collect(Any, 7:11), 5, 1)
-    @test cells.wave == collect(Any, 7:11)
+    rows = findcell((:wave,), hrs)
     @test length(rows) == 5
-    @test rows[1] == findall(x->x==7, hrs.wave)
+    @test rows[UInt32(5)] == findall(x->x==7, hrs.wave)
 
     df = DataFrame(hrs)
     df.wave = PooledArray(df.wave)
-    @test findcell((:wave,), df) == (cells, rows)
+    @test findcell((:wave,), df) == rows
 
     esample = hrs.wave.!=11
-    cells, rows = findcell((:wave, :wave_hosp), hrs, esample)
-    @test length(cells) == length(rows) == 16
-    @test getfield(cells, :matrix)[1,:] == [7, 8]
-    @test rows[1] == intersect(findall(x->x==7, view(hrs.wave, esample)), findall(x->x==8, view(hrs.wave_hosp, esample)))
+    rows = findcell((:wave, :wave_hosp), hrs, esample)
+    @test length(rows) == 16
+    @test rows[one(UInt32)] == intersect(findall(x->x==10, view(hrs.wave, esample)), findall(x->x==10, view(hrs.wave_hosp, esample)))
 
-    df.wave_hosp = PooledArray(df.wave_hosp)
-    @test findcell((:wave, :wave_hosp), df, esample) == (cells, rows)
+    rows = findcell((:wave, :wave_hosp, :male), hrs)
+    @test length(rows) == 40
+end
 
-    cells, rows = findcell((:wave, :wave_hosp, :male), hrs)
-    @test length(cells) == 40
+@testset "cellrows" begin
+    hrs = exampledata("hrs")
+    cols0 = subcolumns(hrs, (:wave, :wave_hosp), falses(size(hrs, 1)))
+    cols = subcolumns(hrs, (:wave, :wave_hosp))
+    rows_dict0 = IdDict{UInt32, Vector{Int}}()
+    @test_throws ArgumentError cellrows(cols, rows_dict0)
+    rows_dict = findcell(cols)
+    @test_throws ArgumentError cellrows(cols0, rows_dict)
+
+    cells, rows = cellrows(cols, rows_dict)
+    @test length(cells) == length(rows) == 20
+    @test getfield(cells, :matrix) ==
+        sortslices(unique(hcat(hrs.wave, hrs.wave_hosp), dims=1), dims=1)
+    @test propertynames(cells) == [:wave, :wave_hosp]
+    @test rows[1] == intersect(findall(x->x==7, hrs.wave), findall(x->x==8, hrs.wave_hosp))
 end

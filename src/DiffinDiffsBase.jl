@@ -58,6 +58,7 @@ export cb,
        subcolumns,
 
        findcell,
+       cellrows,
 
        StatsStep,
        AbstractStatsProcedure,

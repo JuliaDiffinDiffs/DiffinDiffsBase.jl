@@ -13,35 +13,12 @@ function _groupfind(container)
     return inds
 end
 
-function _cellrows(cols::VecColumnTable, refrows::IdDict)
-    ncol = length(cols)
-    ncell = length(refrows)
-    rows = Vector{Vector{Int}}(undef, ncell)
-    cache = Matrix{Any}(undef, ncell, ncol+1)
-    r = 0
-    @inbounds for (k, v) in refrows
-        r += 1
-        cache[r, end] = k
-        row1 = v[1]
-        for c in 1:ncol
-            cache[r, c] = cols[c][row1]
-        end
-    end
-    sorted = sortslices(cache, dims=1)
-    cells = table(sorted[:,1:ncol], header=columnnames(cols))
-    # Collect rows in the same order as cells
-    @inbounds for i in 1:ncell
-        rows[i] = refrows[sorted[i,end]]
-    end
-    return cells, rows
-end
-
 """
     findcell(cols::VecColumnTable)
     findcell(names, data, esample=Colon())
 
 Group the row indices of a collection of data columns
-so that the row-wise combinations of values from these columns
+so that the combination of row values from these columns
 are the same within each group.
 
 Instead of directly providing the relevant portions of columns as
@@ -54,18 +31,11 @@ the row indices are those for the subsample selected based on `esample`
 rather than those for the full `data`.
 
 # Returns
-- `cells::MatrixTable`: unique row-wise combinations of values from columns.
-- `rows::Vector{Vector{Int}}`: row indices for each combination.
+- `IdDict{Tuple, Vector{Int}}`: a map from unique row values to row indices.
 """
 function findcell(cols::VecColumnTable)
     ncol = size(cols, 2)
-    ncol == 0 && throw(ArgumentError("no data column is found"))
-    if size(cols, 1) == 0
-        cells = table(Matrix{Any}(undef, 0, ncol), header=columnnames(cols))
-        rows = Vector{Int}[Int[]]
-        return cells, rows
-    end
-
+    isempty(cols) && throw(ArgumentError("no data column is found"))
     col = cols[1]
     refs = refarray(col)
     pool = refpool(col)
@@ -89,9 +59,47 @@ function findcell(cols::VecColumnTable)
             mult = mult * multn
         end
     end
-    cells, rows = _cellrows(cols, _groupfind(refs))
-    return cells, rows
+    return _groupfind(refs)
 end
 
 findcell(names, data, esample=Colon()) =
     findcell(subcolumns(data, names, esample))
+
+"""
+    cellrows(cols::VecColumnTable, refrows::IdDict)
+
+A utility function for processing the object `refrows` returned by [`findcell`](@ref).
+Unique row values from `cols` corresponding to
+the keys in `refrows` are sorted lexicographically
+and stored as rows in a `Tables.MatrixTable`.
+Groups of row indices from the values of `refrows` are permuted to
+match the order of row values and collected in a `Vector`.
+
+# Returns
+- `cells::MatrixTable`: unique row values from columns in `cols`.
+- `rows::Vector{Vector{Int}}`: row indices for each combination.
+"""
+function cellrows(cols::VecColumnTable, refrows::IdDict)
+    isempty(refrows) && throw(ArgumentError("refrows is empty"))
+    isempty(cols) && throw(ArgumentError("no data column is found"))
+    ncol = length(cols)
+    ncell = length(refrows)
+    rows = Vector{Vector{Int}}(undef, ncell)
+    cache = Matrix{Any}(undef, ncell, ncol+1)
+    r = 0
+    @inbounds for (k, v) in refrows
+        r += 1
+        cache[r, end] = k
+        row1 = v[1]
+        for c in 1:ncol
+            cache[r, c] = cols[c][row1]
+        end
+    end
+    sorted = sortslices(cache, dims=1)
+    cells = table(sorted[:,1:ncol], header=columnnames(cols))
+    # Collect rows in the same order as cells
+    @inbounds for i in 1:ncell
+        rows[i] = refrows[sorted[i,end]]
+    end
+    return cells, rows
+end

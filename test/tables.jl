@@ -30,6 +30,7 @@
     @test cols[:wave] === cols[1]
     @test cols[[:oop_spend, :wave]] == [hrs.oop_spend, hrs.wave]
     @test_throws ArgumentError cols[[1, :oop_spend]]
+    @test_throws BoundsError cols[1:3]
 
     @test propertynames(cols) == [:wave, :oop_spend]
     @test cols.wave === cols[1]
@@ -46,14 +47,20 @@
     @test cols == deepcopy(cols)
 
     @test sprint(show, cols) == "3280×2 VecColumnTable"
-    @test sprint(show, MIME("text/plain"), cols) == """
+    # There may be extra white space at the end of a row in earlier versions of Julia
+    out1 = """
+        3280×2 VecColumnTable:
+         :wave       Int64  
+         :oop_spend  Float64"""
+    out2 = """
         3280×2 VecColumnTable:
          :wave       Int64
          :oop_spend  Float64"""
-    
+    @test sprint(show, MIME("text/plain"), cols) in (out1, out2)
+
     @test summary(cols) == "3280×2 VecColumnTable"
     summary(stdout, cols)
-    
+
     @test Tables.istable(typeof(cols))
     @test Tables.columnaccess(typeof(cols))
     @test Tables.columns(cols) === cols
