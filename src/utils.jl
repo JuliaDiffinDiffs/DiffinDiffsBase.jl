@@ -138,7 +138,7 @@ exampledata() = (:hrs, :nsw, :mpdta)
 """
     exampledata(name::Union{Symbol,String})
 
-Return a [`VecColumnTable`](@ref) containing the example dataset with the specified `name`.
+Return a `CSV.File` containing the example dataset with the specified `name`.
 """
 function exampledata(name::Union{Symbol,String})
     Symbol(name) in exampledata() ||

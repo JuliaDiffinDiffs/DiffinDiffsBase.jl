@@ -3,8 +3,8 @@
 A collection of data files are provided here for the ease of testing and illustrations.
 The included data are modified from the original sources
 and stored in compressed CSV (`.csv.gz`) files.
-See [`src/make.jl`](src/make.jl) for the source code
-that generates these files from the original data.
+See [`data/src/make.jl`](src/make.jl) for the source code
+that generates these files from original data.
 
 [DiffinDiffsBase.jl](https://github.com/JuliaDiffinDiffs/DiffinDiffsBase.jl)
 provides methods for looking up and loading these example data.
@@ -16,7 +16,7 @@ where `name` is the `Symbol` of filename without extension (e.g., `:hrs`).
 
 | Name | Source | File Link | License | Note |
 | :--- | :----: | :-------: | :-----: | :--- |
-| hrs | [Dobkin et al. (2018)](https://doi.org/10.1257/aer.20161038) | [HRS_long.dta](https://doi.org/10.3886/E116186V1-73160) | [CC BY 4.0](https://doi.org/10.3886/E116186V1-73120) | Data are processed as in [Sun and Abraham (2020)](#SunA20) |
+| hrs | [Dobkin et al. (2018)](https://doi.org/10.1257/aer.20161038) | [HRS_long.dta](https://doi.org/10.3886/E116186V1-73160) | [CC BY 4.0](https://doi.org/10.3886/E116186V1-73120) | Data are processed as in [Sun and Abraham (2020)](https://doi.org/10.1016/j.jeconom.2020.09.006) |
 | nsw | [Diamond and Sekhon (2013)](https://doi.org/10.1162/REST_a_00318) | [ec675_nsw.tab](https://doi.org/10.7910/DVN/23407/DYEWLO) | [CC0 1.0](https://dataverse.org/best-practices/harvard-dataverse-general-terms-use) | Data are rearranged in a long format as in the R package [DRDID](https://github.com/pedrohcgs/DRDID/blob/master/data-raw/nsw.R) |
 | mpdta | [Callaway and Sant'Anna (2020)](https://doi.org/10.1016/j.jeconom.2020.12.001) | [mpdta.rda](https://github.com/bcallaway11/did/blob/master/data/mpdta.rda) | [GPL-2](https://cran.r-project.org/web/licenses/GPL-2) | |
 
