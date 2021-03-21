@@ -29,16 +29,31 @@ function VecColumnTable(columns::Vector{AbstractVector}, names::Vector{Symbol})
     return VecColumnTable(columns, names, lookup)
 end
 
-function VecColumnTable(data)
+function VecColumnTable(data, esample::Union{BitVector, Nothing}=nothing)
     Tables.istable(data) || throw(ArgumentError("input data is not Tables.jl-compatible"))
     names = collect(Tables.columnnames(data))
     ncol = length(names)
     columns = Vector{AbstractVector}(undef, ncol)
     cols = Tables.columns(data)
-    @inbounds for i in keys(names)
-        columns[i] = Tables.getcolumn(cols, i)
+    if esample === nothing
+        @inbounds for i in keys(names)
+            columns[i] = Tables.getcolumn(cols, i)
+        end
+    else
+        @inbounds for i in keys(names)
+            columns[i] = view(Tables.getcolumn(cols, i), esample)
+        end
     end
     return VecColumnTable(columns, names)
+end
+
+function VecColumnTable(cols::VecColumnTable, esample::Union{BitVector, Nothing}=nothing)
+    esample === nothing && return cols
+    columns = similar(_columns(cols))
+    @inbounds for i in keys(columns)
+        columns[i] = view(cols[i], esample)
+    end
+    return VecColumnTable(columns, _names(cols), _lookup(cols))
 end
 
 _columns(cols::VecColumnTable) = getfield(cols, :columns)
@@ -150,3 +165,52 @@ end
 
 subcolumns(data, names::Symbol, rows=Colon(); nomissing=true) =
     subcolumns(data, [names], rows, nomissing=nomissing)
+
+const VecColsRow = Tables.ColumnsRow{VecColumnTable}
+
+ncol(c::VecColsRow) = ncol(Tables.getcolumns(c))
+
+function Base.isequal(r1::VecColsRow, r2::VecColsRow)
+    cols = Tables.getcolumns(r1)
+    Tables.getcolumns(r2) === cols ||
+        throw(ArgumentError("compared VecColsRow are not from the same VecColumnTable"))
+    @inbounds for col in cols
+        a = col[Tables.getrow(r1)]
+        b = col[Tables.getrow(r2)]
+        isequal(a, b) || return false
+    end
+    return true
+end
+
+function Base.isless(r1::VecColsRow, r2::VecColsRow)
+    cols = Tables.getcolumns(r1)
+    Tables.getcolumns(r2) === cols ||
+        throw(ArgumentError("compared VecColsRow are not from the same VecColumnTable"))
+    @inbounds for col in cols
+        a = col[Tables.getrow(r1)]
+        b = col[Tables.getrow(r2)]
+        isequal(a, b) || return isless(a, b)
+    end
+    return false
+end
+
+Base.sortperm(cols::VecColumnTable; @nospecialize(kwargs...)) =
+    sortperm(collect(Tables.rows(cols)); kwargs...)
+
+function Base.sort(cols::VecColumnTable; @nospecialize(kwargs...))
+    p = sortperm(cols; kwargs...)
+    columns = similar(_columns(cols))
+    i = 0
+    @inbounds for col in cols
+        i += 1
+        columns[i] = col[p]
+    end
+    return VecColumnTable(columns, copy(_names(cols)), copy(_lookup(cols)))
+end
+
+function Base.sort!(cols::VecColumnTable; @nospecialize(kwargs...))
+    p = sortperm(cols; kwargs...)
+    @inbounds for col in cols
+        col .= col[p]
+    end
+end
