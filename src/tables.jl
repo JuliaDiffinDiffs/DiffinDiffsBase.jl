@@ -168,27 +168,32 @@ subcolumns(data, names::Symbol, rows=Colon(); nomissing=true) =
 
 const VecColsRow = Tables.ColumnsRow{VecColumnTable}
 
-ncol(c::VecColsRow) = ncol(Tables.getcolumns(c))
+ncol(r::VecColsRow) = length(r)
 
-function Base.isequal(r1::VecColsRow, r2::VecColsRow)
-    cols = Tables.getcolumns(r1)
-    Tables.getcolumns(r2) === cols ||
-        throw(ArgumentError("compared VecColsRow are not from the same VecColumnTable"))
-    @inbounds for col in cols
-        a = col[Tables.getrow(r1)]
-        b = col[Tables.getrow(r2)]
-        isequal(a, b) || return false
-    end
-    return true
+_rowhash(cols::Tuple{AbstractVector}, r::Int, h::UInt=zero(UInt))::UInt =
+    hash(cols[1][r], h)
+
+function _rowhash(cols::Tuple{Vararg{AbstractVector}}, r::Int, h::UInt=zero(UInt))::UInt
+    h = hash(cols[1][r], h)
+    _rowhash(Base.tail(cols), r, h)
 end
 
+# hash is implemented following DataFrames.DataFrameRow for getting unique row values
+# Column names are not taken into account
+Base.hash(r::VecColsRow, h::UInt=zero(UInt)) =
+    _rowhash(ntuple(c->Tables.getcolumns(r)[c], ncol(r)), Tables.getrow(r), h)
+
+# Column names are not taken into account
+function Base.isequal(r1::VecColsRow, r2::VecColsRow)
+    length(r1) == length(r2) || return false
+    return all(((a, b),) -> isequal(a, b), zip(r1, r2))
+end
+
+# Column names are not taken into account
 function Base.isless(r1::VecColsRow, r2::VecColsRow)
-    cols = Tables.getcolumns(r1)
-    Tables.getcolumns(r2) === cols ||
-        throw(ArgumentError("compared VecColsRow are not from the same VecColumnTable"))
-    @inbounds for col in cols
-        a = col[Tables.getrow(r1)]
-        b = col[Tables.getrow(r2)]
+    length(r1) == length(r2) ||
+        throw(ArgumentError("compared VecColsRow do not have the same length"))
+    for (a, b) in zip(r1, r2)
         isequal(a, b) || return isless(a, b)
     end
     return false
@@ -197,6 +202,7 @@ end
 Base.sortperm(cols::VecColumnTable; @nospecialize(kwargs...)) =
     sortperm(collect(Tables.rows(cols)); kwargs...)
 
+# names and lookup are not copied
 function Base.sort(cols::VecColumnTable; @nospecialize(kwargs...))
     p = sortperm(cols; kwargs...)
     columns = similar(_columns(cols))
@@ -205,7 +211,7 @@ function Base.sort(cols::VecColumnTable; @nospecialize(kwargs...))
         i += 1
         columns[i] = col[p]
     end
-    return VecColumnTable(columns, copy(_names(cols)), copy(_lookup(cols)))
+    return VecColumnTable(columns, _names(cols), _lookup(cols))
 end
 
 function Base.sort!(cols::VecColumnTable; @nospecialize(kwargs...))

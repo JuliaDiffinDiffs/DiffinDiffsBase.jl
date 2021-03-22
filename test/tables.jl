@@ -19,6 +19,15 @@
     @test length(cols) == 1
     @test isempty(cols)
 
+    cols = VecColumnTable((wave=hrs.wave,))
+    @test size(cols) == (3280, 1)
+    rows = collect(Tables.rows(cols))
+    @test hash(rows[2]) == hash(rows[6])
+    @test isequal(rows[2], rows[6])
+    @test !isequal(rows[1], rows[2])
+    @test isless(rows[1], rows[3])
+    @test !isless(rows[1], rows[2])
+
     cols = VecColumnTable(AbstractVector[hrs.wave, hrs.oop_spend], [:wave, :oop_spend],
         Dict(:wave=>1, :oop_spend=>2))
     cols1 = VecColumnTable(AbstractVector[hrs.wave, hrs.oop_spend], [:wave, :oop_spend])
@@ -90,17 +99,37 @@
     @test Tables.rowcount(cols) == 3280
 
     @test eltype(Tables.rows(cols)) == VecColsRow
-    @test ncol(cols) == 2
-    rows = collect(Tables.rows(cols))
+    rows0 = collect(Tables.rows(cols))
+    @test ncol(rows0[1]) == 2
+    @test hash(rows0[2]) != hash(rows0[6])
+    @test isequal(rows0[1], rows0[1])
+    @test isequal(rows0[1], rows0[2]) == false
+    @test isless(rows0[2], rows0[1])
+
+    # Same data but different parent tables
     rows1 = collect(Tables.rows(cols1))
-    @test isequal(rows[1], rows[1])
-    @test isequal(rows[1], rows[2]) == false
-    @test_throws ArgumentError isequal(rows[1], rows1[1])
-    @test isless(rows[2], rows[1])
-    @test_throws ArgumentError isless(rows[2], rows1[1])
+    @test hash(rows0[1]) == hash(rows1[1])
+    @test isequal(rows0[1], rows1[1])
+    @test isless(rows0[2], rows1[1])
+
+    # Rows do not have the same length
+    @test !isequal(rows[1], rows0[1])
+    @test_throws ArgumentError isless(rows[1], rows0[1])
+
+    cols2 = VecColumnTable((wave=hrs.wave, male=hrs.male))
+    rows2 = collect(Tables.rows(cols2))
+    @test hash(rows2[2]) == hash(rows2[6])
+    @test isequal(rows2[2], rows2[6])
+
+    # Different column names but otherwise the same table
+    cols3 = VecColumnTable((wave1=hrs.wave, oop_spend1=hrs.oop_spend))
+    rows3 = collect(Tables.rows(cols3))
+    @test hash(rows0[2]) == hash(rows3[2])
+    @test isequal(rows0[2], rows3[2])
+    @test isless(rows0[2], rows3[1])
 
     df = DataFrame(hrs)
-    @test sortperm(cols) == sortperm(rows) == sortperm(df, [:wave, :oop_spend])
+    @test sortperm(cols) == sortperm(rows0) == sortperm(df, [:wave, :oop_spend])
     cols_sorted = sort(cols)
     df_sorted = sort(df, [:wave, :oop_spend])
     @test cols_sorted.oop_spend == df_sorted.oop_spend
