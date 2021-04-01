@@ -296,12 +296,12 @@ end
     @test nobs(r) == 6
     @test outcomename(r) == "y"
     @test coefnames(r) == r.coefnames
-    @test treatnames(r) == r.coefnames[1:4]
     @test treatcells(r) == r.treatcells
+    @test weights(r) == :w
     @test ntreatcoef(r) == 4
     @test treatcoef(r) == r.coef[1:4]
     @test treatvcov(r) == r.vcov[1:4, 1:4]
-    @test weights(r) == :w
+    @test treatnames(r) == r.coefnames[1:4]
     @test_throws ErrorException parent(r)
     @test dof_residual(r) == 5
     @test responsename(r) == "y"
@@ -398,16 +398,16 @@ end
     sr = view(r, :)
     @test coef(sr) == coef(r)
     @test vcov(sr) == vcov(r)
-    @test vce(r) === nothing
+    @test vce(sr) === nothing
     @test nobs(sr) == nobs(r)
     @test outcomename(sr) == outcomename(r)
     @test coefnames(sr) == coefnames(r)
-    @test treatnames(sr) == treatnames(r)
     @test treatcells(sr) == treatcells(r)
+    @test weights(sr) == weights(r)
     @test ntreatcoef(sr) == ntreatcoef(r)
     @test treatcoef(sr) == treatcoef(r)
     @test treatvcov(sr) == treatvcov(r)
-    @test weights(sr) == weights(r)
+    @test treatnames(sr) == treatnames(r)
     @test parent(sr) === r
     @test dof_residual(sr) == dof_residual(r)
     @test responsename(sr) == responsename(r)
@@ -417,16 +417,16 @@ end
     sr = view(r, isodd.(1:6))
     @test coef(sr) == coef(r)[[1,3,5]]
     @test vcov(sr) == vcov(r)[[1,3,5],[1,3,5]]
-    @test vce(r) === nothing
+    @test vce(sr) === nothing
     @test nobs(sr) == nobs(r)
     @test outcomename(sr) == outcomename(r)
     @test coefnames(sr) == coefnames(r)[[1,3,5]]
-    @test treatnames(sr) == treatnames(r)[[1,3]]
     @test treatcells(sr) == view(treatcells(r), [1,3])
+    @test weights(sr) == weights(r)
     @test ntreatcoef(sr) == 2
     @test treatcoef(sr) == treatcoef(r)[[1,3]]
     @test treatvcov(sr) == treatvcov(r)[[1,3],[1,3]]
-    @test weights(sr) == weights(r)
+    @test treatnames(sr) == treatnames(r)[[1,3]]
     @test parent(sr) === r
     @test dof_residual(sr) == dof_residual(r)
     @test responsename(sr) == responsename(r)
@@ -444,16 +444,16 @@ end
 
     @test coef(tr) === tr.coef
     @test vcov(tr) === tr.vcov
-    @test vce(r) === nothing
+    @test vce(tr) === nothing
     @test nobs(tr) == nobs(r)
     @test outcomename(tr) == outcomename(r)
     @test coefnames(tr) === coefnames(r)
-    @test treatnames(tr) == treatnames(r)
     @test treatcells(tr) === treatcells(r)
+    @test weights(tr) == weights(r)
     @test ntreatcoef(tr) == 4
     @test treatcoef(tr) == tr.coef[1:4]
     @test treatvcov(tr) == tr.vcov[1:4,1:4]
-    @test weights(tr) == weights(r)
+    @test treatnames(tr) == treatnames(r)
     @test parent(tr) === r
     @test dof_residual(tr) == dof_residual(r)
     @test responsename(tr) == responsename(r)
@@ -464,21 +464,21 @@ end
 @testset "TransSubDIDResult" begin
     r = TestResult(2, 2)
     m = reshape(1:18, 3, 6)
-    inds = [1,2,6]
+    inds = [2,1,6]
     tr = TransSubDIDResult(r, m, r.coef[inds], r.vcov[inds, inds], inds)
 
     @test coef(tr) === tr.coef
     @test vcov(tr) === tr.vcov
-    @test vce(r) === nothing
+    @test vce(tr) === nothing
     @test nobs(tr) == nobs(r)
     @test outcomename(tr) == outcomename(r)
     @test coefnames(tr) == coefnames(r)[inds]
-    @test treatnames(tr) == treatnames(r)
-    @test treatcells(tr) == view(treatcells(r), 1:2)
+    @test treatcells(tr) == view(treatcells(r), 2:-1:1)
+    @test weights(tr) == weights(r)
     @test ntreatcoef(tr) == 2
     @test treatcoef(tr) == tr.coef[1:2]
     @test treatvcov(tr) == tr.vcov[1:2,1:2]
-    @test weights(tr) == weights(r)
+    @test treatnames(tr) == treatnames(r)[2:-1:1]
     @test parent(tr) === r
     @test dof_residual(tr) == dof_residual(r)
     @test responsename(tr) == responsename(r)

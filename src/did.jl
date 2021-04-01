@@ -186,12 +186,12 @@ collect estimation results for difference-in-differences.
 | `nobs(r)` | `r.nobs` | Number of observations (table rows) involved in estimation |
 | `outcomename(r)` | `r.yname` | Name of the outcome variable |
 | `coefnames(r)` | `r.coefnames` | Names (`Vector{String}`) of all coefficients including covariates |
-| `treatnames(r)` | `coefnames(r)[1:ntreatcoef(r)]` | Names (`Vector{String}`) of treatment coefficients |
 | `treatcells(r)` | `r.treatcells` | Tables.jl-compatible tabular description of treatment coefficients in the order of `coefnames` (without covariates) |
+| `weights(r)` | `r.weights` | Column name of the weight variable (if specified) |
 | `ntreatcoef(r)` | `size(treatcells(r), 1)` | Number of treatment coefficients |
 | `treatcoef(r)` | `view(coef(r), 1:ntreatcoef(r))` | A view of treatment coefficients |
 | `treatvcov(r)` | `(N = ntreatcoef(r); view(vcov(r), 1:N, 1:N))` | A view of variance-covariance matrix for treatment coefficients |
-| `weights(r)` | `r.weights` | Column name of the weight variable (if specified) |
+| `treatnames(r)` | `coefnames(r)[1:ntreatcoef(r)]` | Names (`Vector{String}`) of treatment coefficients |
 | **Optional methods** | | |
 | `parent(r)` | `r.parent` | Result object from which `r` is generated |
 | `dof_residual(r)` | `r.dof_residual` | Residual degrees of freedom |
@@ -369,19 +369,20 @@ Return a vector of coefficient names.
 coefnames(r::AbstractDIDResult) = r.coefnames
 
 """
-    treatnames(r::AbstractDIDResult)
-
-Return a vector of names for treatment coefficients.
-"""
-treatnames(r::AbstractDIDResult) = coefnames(r)[1:ntreatcoef(r)]
-
-"""
     treatcells(r::AbstractDIDResult)
 
 Return a Tables.jl-compatible tabular description of treatment coefficients
 in the order of coefnames (without covariates).
 """
 treatcells(r::AbstractDIDResult) = r.treatcells
+
+"""
+    weights(r::AbstractDIDResult)
+
+Return the column name of the weight variable.
+Return `nothing` if `weights` is not specified for estimation.
+"""
+weights(r::AbstractDIDResult) = r.weightname
 
 """
     ntreatcoef(r::AbstractDIDResult)
@@ -405,12 +406,11 @@ Return a view of variance-covariance matrix for treatment coefficients.
 treatvcov(r::AbstractDIDResult) = (N = ntreatcoef(r); view(vcov(r), 1:N, 1:N))
 
 """
-    weights(r::AbstractDIDResult)
+    treatnames(r::AbstractDIDResult)
 
-Return the column name of the weight variable.
-Return `nothing` if `weights` is not specified for estimation.
+Return a vector of names for treatment coefficients.
 """
-weights(r::AbstractDIDResult) = r.weightname
+treatnames(r::AbstractDIDResult) = coefnames(r)[1:ntreatcoef(r)]
 
 """
     parent(r::AbstractDIDResult)
@@ -610,12 +610,12 @@ vce(r::SubDIDResult) = vce(parent(r))
 nobs(r::SubDIDResult) = nobs(parent(r))
 outcomename(r::SubDIDResult) = outcomename(parent(r))
 coefnames(r::SubDIDResult) = view(coefnames(parent(r)), r.inds)
-treatnames(r::SubDIDResult) = view(treatnames(parent(r)), r.treatinds)
 treatcells(r::SubDIDResult) = view(treatcells(parent(r)), r.treatinds)
+weights(r::SubDIDResult) = weights(parent(r))
 ntreatcoef(r::SubDIDResult) = _nselected(r.treatinds)
 treatcoef(r::SubDIDResult) = view(treatcoef(parent(r)), r.treatinds)
 treatvcov(r::SubDIDResult) = view(treatvcov(parent(r)), r.treatinds, r.treatinds)
-weights(r::SubDIDResult) = weights(parent(r))
+treatnames(r::SubDIDResult) = view(treatnames(parent(r)), r.treatinds)
 dof_residual(r::SubDIDResult) = dof_residual(parent(r))
 responsename(r::SubDIDResult) = responsename(parent(r))
 
@@ -683,12 +683,13 @@ nobs(r::TransOrTransSub) = nobs(parent(r))
 outcomename(r::TransOrTransSub) = outcomename(parent(r))
 coefnames(r::TransformedDIDResult) = coefnames(parent(r))
 coefnames(r::TransSubDIDResult) = view(coefnames(parent(r)), r.inds)
-treatnames(r::TransOrTransSub) = treatnames(parent(r))
 treatcells(r::TransformedDIDResult) = treatcells(parent(r))
 treatcells(r::TransSubDIDResult) = view(treatcells(parent(r)), r.treatinds)
+weights(r::TransOrTransSub) = weights(parent(r))
 ntreatcoef(r::TransformedDIDResult) = ntreatcoef(parent(r))
 ntreatcoef(r::TransSubDIDResult) = _nselected(r.treatinds)
-weights(r::TransOrTransSub) = weights(parent(r))
+treatnames(r::TransformedDIDResult) = treatnames(parent(r))
+treatnames(r::TransSubDIDResult) = view(treatnames(parent(r)), r.treatinds)
 dof_residual(r::TransOrTransSub) = dof_residual(parent(r))
 responsename(r::TransOrTransSub) = responsename(parent(r))
 coefinds(r::TransformedDIDResult) = coefinds(parent(r))
