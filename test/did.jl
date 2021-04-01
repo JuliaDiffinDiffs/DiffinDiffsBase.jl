@@ -288,6 +288,7 @@ end
     @test vcov(r, :rel=>x->x==1, :c=>x->x==1) == reshape([1.0], 1, 1)
     @test vcov(r, (:rel, :c)=>(x, y)->x==1) == r.vcov[[1,2], [1,2]]
 
+    @test vce(r) === nothing
     cfint = confint(r)
     @test length(cfint) == 2
     @test all(cfint[1] + cfint[2] .≈ 2 * coef(r))
@@ -309,16 +310,17 @@ end
 
     @test_throws ErrorException agg(r)
 
+    w = VERSION < v"1.6.0" ? " " : ""
     @test sprint(show, r) == """
         ─────────────────────────────────────────────────────────────────────────
-                       Estimate  Std. Error     z  Pr(>|z|)  Lower 95%  Upper 95%
+                       Estimate  Std. Error     t  Pr(>|t|)  Lower 95%  Upper 95%
         ─────────────────────────────────────────────────────────────────────────
-        rel: 1 & c: 1       1.0         1.0  1.00    0.3173  -0.959964    2.95996
-        rel: 1 & c: 2       2.0         2.0  1.00    0.3173  -1.91993     5.91993
-        rel: 2 & c: 1       3.0         3.0  1.00    0.3173  -2.87989     8.87989
-        rel: 2 & c: 2       4.0         4.0  1.00    0.3173  -3.83986    11.8399
-        c5                  5.0         5.0  1.00    0.3173  -4.79982    14.7998
-        c6                  6.0         6.0  1.00    0.3173  -5.75978    17.7598
+        rel: 1 & c: 1       1.0         1.0  1.00    0.3632   -1.57058    3.57058
+        rel: 1 & c: 2       2.0         2.0  1.00    0.3632   -3.14116    7.14116
+        rel: 2 & c: 1       3.0         3.0  1.00    0.3632   -4.71175   10.7117$w
+        rel: 2 & c: 2       4.0         4.0  1.00    0.3632   -6.28233   14.2823$w
+        c5                  5.0         5.0  1.00    0.3632   -7.85291   17.8529$w
+        c6                  6.0         6.0  1.00    0.3632   -9.42349   21.4235$w
         ─────────────────────────────────────────────────────────────────────────"""
 end
 
@@ -396,6 +398,7 @@ end
     sr = view(r, :)
     @test coef(sr) == coef(r)
     @test vcov(sr) == vcov(r)
+    @test vce(r) === nothing
     @test nobs(sr) == nobs(r)
     @test outcomename(sr) == outcomename(r)
     @test coefnames(sr) == coefnames(r)
@@ -414,6 +417,7 @@ end
     sr = view(r, isodd.(1:6))
     @test coef(sr) == coef(r)[[1,3,5]]
     @test vcov(sr) == vcov(r)[[1,3,5],[1,3,5]]
+    @test vce(r) === nothing
     @test nobs(sr) == nobs(r)
     @test outcomename(sr) == outcomename(r)
     @test coefnames(sr) == coefnames(r)[[1,3,5]]
@@ -440,6 +444,7 @@ end
 
     @test coef(tr) === tr.coef
     @test vcov(tr) === tr.vcov
+    @test vce(r) === nothing
     @test nobs(tr) == nobs(r)
     @test outcomename(tr) == outcomename(r)
     @test coefnames(tr) === coefnames(r)
@@ -464,6 +469,7 @@ end
 
     @test coef(tr) === tr.coef
     @test vcov(tr) === tr.vcov
+    @test vce(r) === nothing
     @test nobs(tr) == nobs(r)
     @test outcomename(tr) == outcomename(r)
     @test coefnames(tr) == coefnames(r)[inds]

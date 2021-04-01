@@ -182,6 +182,7 @@ collect estimation results for difference-in-differences.
 |---|---|---|
 | `coef(r)` | `r.coef` | Vector of point estimates for all coefficients including covariates |
 | `vcov(r)` | `r.vcov` | Variance-covariance matrix for estimates in `coef` |
+| `vce(r)` | `r.vce` | Covariance estimator |
 | `nobs(r)` | `r.nobs` | Number of observations (table rows) involved in estimation |
 | `outcomename(r)` | `r.yname` | Name of the outcome variable |
 | `coefnames(r)` | `r.coefnames` | Names (`Vector{String}`) of all coefficients including covariates |
@@ -325,6 +326,13 @@ through bit-wise `and`.
 end
 
 """
+    vce(r::AbstractDIDResult)
+
+Return the covariance estimator used to estimate variance-covariance matrix.
+"""
+vce(r::AbstractDIDResult) = r.vce
+
+"""
     confint(r::AbstractDIDResult; level::Real=0.95)
 
 Return a confidence interval for each coefficient estimate.
@@ -333,7 +341,7 @@ where the first vector collects the lower bounds for all intervals
 and the second one collects the upper bounds.
 """
 function confint(r::AbstractDIDResult; level::Real=0.95)
-    scale = norminvcdf(1 - (1 - level) / 2)
+    scale = tdistinvcdf(dof_residual(r), 1 - (1 - level) / 2)
     se = stderror(r)
     return coef(r) .- scale .* se, coef(r) .+ scale .* se
 end
@@ -454,12 +462,12 @@ function coeftable(r::AbstractDIDResult; level::Real=0.95)
     cf = coef(r)
     se = stderror(r)
     zs = cf ./ se
-    pv = 2 .* normccdf.(abs.(zs))
+    pv = 2 .* tdistccdf.(dof_residual(r), abs.(zs))
     cil, ciu = confint(r)
     cnames = coefnames(r)
     levstr = isinteger(level*100) ? string(Integer(level*100)) : string(level*100)
     return CoefTable(Vector[cf, se, zs, pv, cil, ciu],
-        ["Estimate","Std. Error","z", "Pr(>|z|)", "Lower $levstr%", "Upper $levstr%"],
+        ["Estimate","Std. Error","t", "Pr(>|t|)", "Lower $levstr%", "Upper $levstr%"],
         ["$(cnames[i])" for i = 1:length(cf)], 4, 3)
 end
 
@@ -598,6 +606,7 @@ from `r` at the given index or indices `inds` without constructing a copied subs
 
 coef(r::SubDIDResult) = view(coef(parent(r)), r.inds)
 vcov(r::SubDIDResult) = view(vcov(parent(r)), r.inds, r.inds)
+vce(r::SubDIDResult) = vce(parent(r))
 nobs(r::SubDIDResult) = nobs(parent(r))
 outcomename(r::SubDIDResult) = outcomename(parent(r))
 coefnames(r::SubDIDResult) = view(coefnames(parent(r)), r.inds)
@@ -669,6 +678,7 @@ end
 
 const TransOrTransSub = Union{TransformedDIDResult, TransSubDIDResult}
 
+vce(r::TransOrTransSub) = vce(parent(r))
 nobs(r::TransOrTransSub) = nobs(parent(r))
 outcomename(r::TransOrTransSub) = outcomename(parent(r))
 coefnames(r::TransformedDIDResult) = coefnames(parent(r))

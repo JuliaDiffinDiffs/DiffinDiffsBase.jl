@@ -11,7 +11,7 @@ using Missings: disallowmissing
 using PooledArrays: _label
 using Reexport
 using StatsBase: CoefTable, Weights, stderror, uweights
-using StatsFuns: normccdf, norminvcdf
+using StatsFuns: tdistccdf, tdistinvcdf
 @reexport using StatsModels
 using StatsModels: Schema
 using Tables
@@ -94,6 +94,7 @@ export cb,
        AbstractDIDResult,
        DIDResult,
        AggregatedDIDResult,
+       vce,
        outcomename,
        treatnames,
        treatcells,
