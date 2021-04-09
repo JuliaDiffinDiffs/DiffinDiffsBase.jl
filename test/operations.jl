@@ -47,19 +47,21 @@ end
     @test length(panel.idpool) == 656
     @test panel.timepool == 7:11
 
-    panel1 = setpanel(hrs, :hhidpn, :wave, 0.5)
+    panel1 = setpanel(hrs, :hhidpn, :wave, 0.5, ref_type=Int)
     @test view(diff(panel1.refs), inidbounds) == 2 .* view(diff(hrs.wave), inidbounds)
     @test panel1.timepool == 7:11
+    @test eltype(panel1.refs) == Int
 
     @test_throws ArgumentError setpanel(hrs, :hhidpn, :oop_spend)
     @test_throws DimensionMismatch setpanel(hrs.hhidpn, 1:100)
 
     @test sprint(show, panel) == "Panel Structure"
+    t = VERSION < v"1.6.0" ? "Array{Int64,1}" : " Vector{Int64}"
     @test sprint(show, MIME("text/plain"), panel) == """
         Panel Structure:
           idpool:   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10  …  647, 648, 649, 650, 651, 652, 653, 654, 655, 656]
           timepool:   [7, 8, 9, 10, 11]
-          laginds:  Dict{Int64, Vector{Int64}}()"""
+          laginds:  Dict{Int64,$t}()"""
 
     lags = findlag!(panel)
     @test sprint(show, MIME("text/plain"), panel) == """

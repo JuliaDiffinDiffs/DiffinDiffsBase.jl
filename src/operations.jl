@@ -19,7 +19,7 @@ function _refs_pool(col::AbstractArray, ref_type::Type{<:Integer}=UInt32)
 end
 
 # Obtain unique labels for row-wise pairs of values from a1 and a2 when mult is large enough
-function _mult!(a1::Array, a2::AbstractArray, mult)
+function _mult!(a1::AbstractArray, a2::AbstractArray, mult)
     a1 .+= mult .* (a2 .- 1)
 end
 
@@ -148,7 +148,7 @@ function _scaledrefs_pool(col::AbstractArray, step, ref_type::Type{<:Signed}=Int
     end
     pool1 = spool[1]
     refmap = Vector{eltype(refs)}(undef, npool)
-    for i in 1:npool
+    @inbounds for i in 1:npool
         refmap[i] = (pool[i] - pool1) ÷ step + 1
     end
     @inbounds for i in 1:length(refs)
@@ -214,8 +214,8 @@ end
 
 Construct a vector of indices of the `l`th lagged values
 for all id-time combinations of `panel`
-and save the results in `panel.laginds`.
-If the lagged value does not exist, the index is filled with 0.
+and save the result in `panel.laginds`.
+If a lagged value does not exist, its index is filled with 0.
 See also [`ilag!`](@ref).
 """
 function findlag!(panel::PanelStructure, l::Integer=1)
@@ -240,8 +240,8 @@ end
 
 Construct a vector of indices of the `l`th lead values
 for all id-time combinations of `panel`
-and save the results in `panel.laginds`.
-If the lead value does not exist, the index is filled with 0.
+and save the result in `panel.laginds`.
+If a lead value does not exist, its index is filled with 0.
 See also [`ilead!`](@ref).
 """
 findlead!(panel::PanelStructure, l::Integer=1) = findlag!(panel, -l)
@@ -275,7 +275,7 @@ ilead!(panel::PanelStructure, l::Integer=1) = ilag!(panel, -l)
     lag(panel::PanelStructure, v::AbstractArray, l::Integer=1; default=missing)
 
 Return a vector of `l`th lagged values of `v` with missing values filled with `default`.
-The panel structure is respected.
+The `panel` structure is respected.
 See also [`ilag!`](@ref) and [`lead`](@ref).
 """
 function lag(panel::PanelStructure, v::AbstractArray, l::Integer=1; default=missing)
@@ -293,7 +293,7 @@ end
     lead(panel::PanelStructure, v::AbstractArray, l::Integer=1; default=missing)
 
 Return a vector of `l`th lead values of `v` with missing values filled with `default`.
-The panel structure is respected.
+The `panel` structure is respected.
 See also [`ilead!`](@ref) and [`lag`](@ref).
 """
 lead(panel::PanelStructure, v::AbstractArray, l::Integer=1; default=missing) =
@@ -315,7 +315,7 @@ See also [`diff`](@ref).
 
 # Keywords
 - `order::Integer=1`: the order of differences to be taken.
-- `l::Integer=1`: the time interval between each pair of values.
+- `l::Integer=1`: the time interval between each pair of observations.
 - `default=missing`: default values for indices where the differences do not exist.
 """
 function diff!(dest::AbstractArray, panel::PanelStructure, v::AbstractArray;
@@ -346,7 +346,7 @@ See also [`diff!`](@ref).
 
 # Keywords
 - `order::Integer=1`: the order of differences to be taken.
-- `l::Integer=1`: the time interval between each pair of values.
+- `l::Integer=1`: the time interval between each pair of observations.
 - `default=missing`: default values for indices where the differences do not exist.
 """
 function diff(panel::PanelStructure, v::AbstractArray;
