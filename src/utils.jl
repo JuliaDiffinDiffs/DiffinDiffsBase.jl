@@ -146,3 +146,38 @@ function exampledata(name::Union{Symbol,String})
     path = (@__DIR__)*"/../data/$(name).csv.gz"
     return open(path) |> GzipDecompressorStream |> read |> CSV.File
 end
+
+struct RotatingTimeValue{R, T<:Union{Signed, TimeType}}
+    rotation::R
+    time::T
+    RotatingTimeValue(rotation, time) =
+        new{typeof(rotation), typeof(time)}(rotation, time)
+end
+
+rotatingtime(rotation, time) = RotatingTimeValue.(rotation, time)
+
+function (-)(x::RotatingTimeValue, y::RotatingTimeValue)
+    rx = x.rotation
+    ry = y.rotation
+    rx == ry || throw(ArgumentError("x has rotation $rx while y has rotation $ry"))
+    return x.time - y.time
+end
+
+function isless(x::RotatingTimeValue, y::RotatingTimeValue)
+    rx = x.rotation
+    ry = y.rotation
+    return isequal(rx, ry) ? isless(x.time, y.time) : isless(rx, ry)
+end
+
+(==)(x::RotatingTimeValue, y::RotatingTimeValue) =
+    x.rotation == y.rotation && x.time == y.time
+
+show(io::IO, x::RotatingTimeValue) = print(io, x.rotation, "_", x.time)
+function show(io::IO, ::MIME"text/plain", x::RotatingTimeValue)
+    println(io, typeof(x), ':')
+    println(io, "  rotation: ", x.rotation)
+    print(io, "  time:     ", x.time)
+end
+
+const ValidPeriodType = Union{Signed, Period}
+const ValidTimeType = Union{Signed, TimeType, RotatingTimeValue}

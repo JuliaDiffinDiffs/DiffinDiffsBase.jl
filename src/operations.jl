@@ -109,7 +109,7 @@ function cellrows(cols::VecColumnTable, refrows::IdDict)
 end
 
 """
-    PanelStructure{R<:Signed, T1, T2<:TimeType}
+    PanelStructure{R<:Signed, T1, T2<:ValidTimeType}
 
 Panel data structure defined by unique combinations of unit ids and time periods.
 It contains the information required for certain operations such as
@@ -123,7 +123,7 @@ See also [`setpanel`](@ref).
 - `timepool::Vector{T2}`: sorted unique time periods.
 - `laginds::Dict{Int, Vector{Int}}`: a map from lag distances to vectors of indices of lagged values.
 """
-struct PanelStructure{R<:Signed, T1, T2<:TimeType}
+struct PanelStructure{R<:Signed, T1, T2<:ValidTimeType}
     refs::Vector{R}
     invrefs::Dict{R, Int}
     idpool::Vector{T1}
@@ -180,7 +180,7 @@ can be specified with `ref_type`.
 """
 function setpanel(id::AbstractArray, time::AbstractArray, timestep=nothing;
         ref_type::Type{<:Signed}=Int32)
-    eltype(time) <: TimeType ||
+    eltype(time) <: ValidTimeType ||
         throw(ArgumentError("invalid element type $(eltype(time)) from time column"))
     length(id) == length(time) || throw(DimensionMismatch(
         "id has length $(length(id)) while time has length $(length(time))"))

@@ -10,6 +10,9 @@
         nt = merge(nt, (data=rand(10,10),))
         @test_throws ArgumentError checkdata(nt...)
 
+        nt = merge(nt, (data=[(a=1, b=2), (a=1, b=2)],))
+        @test_throws ArgumentError checkdata(nt...)
+
         nt = merge(nt, (data=hrs, subset=BitArray(hrs.male[1:100])))
         @test_throws DimensionMismatch checkdata(nt...)
 
@@ -52,7 +55,8 @@ end
     @testset "checkvars!" begin
         hrs = exampledata("hrs")
         nt = (data=hrs, tr=dynamic(:wave, -1), pr=nevertreated(11), yterm=term(:oop_spend),
-            treatname=:wave_hosp, esample=trues(size(hrs,1)), treatintterms=TermSet(), xterms=TermSet())
+            treatname=:wave_hosp, esample=trues(size(hrs,1)),
+            treatintterms=TermSet(), xterms=TermSet())
         @test checkvars!(nt...) == (esample=trues(size(hrs,1)),
             tr_rows=hrs.wave_hosp.!=11)
         
@@ -71,20 +75,42 @@ end
             tr_rows=hrs.wave_hosp.!=11)
         
         df = DataFrame(hrs)
-        allowmissing!(df)
+        allowmissing!(df, :male)
         df.male .= ifelse.(df.wave_hosp.==11, missing, df.male)
-
         nt = merge(nt, (data=df,))
         @test checkvars!(nt...) == (esample=trues(size(hrs,1)),
             tr_rows=hrs.wave_hosp.!=11)
-        
         df.male .= ifelse.(df.wave_hosp.==10, missing, df.male)
         @test checkvars!(nt...) == (esample=df.wave_hosp.!=10,
             tr_rows=hrs.wave_hosp.∈((8,9),))
+        df.white = ifelse.(df.wave_hosp.==9, missing, df.white.+0.5)
+        ret = (esample=df.wave_hosp.∈((8,11),), tr_rows=hrs.wave_hosp.==8)
+        @test checkvars!(nt...) == ret
 
-        df.white .= ifelse.(df.wave_hosp.==9, missing, df.white)
-        @test checkvars!(nt...) == (esample=df.wave_hosp.∈((8,11),),
-            tr_rows=hrs.wave_hosp.==8)
+        df.wave_hosp = Date.(df.wave_hosp)
+        @test_throws ArgumentError checkvars!(nt...)
+        df.wave = Date.(df.wave)
+        @test_throws ArgumentError checkvars!(nt...)
+        nt = merge(nt, (tr=dynamic(:wave, Year(-1)),))
+        @test_throws ArgumentError checkvars!(nt...)
+        nt = merge(nt, (pr=nevertreated(Date(11)),))
+        @test checkvars!(nt...) == ret
+        nt = merge(nt, (pr=notyettreated(Date(11)),))
+        @test checkvars!(nt...) ==
+            (esample=(df.wave_hosp.∈((Date(8),Date(11)),)).&(df.wave.!=Date(11)),
+            tr_rows=(df.wave_hosp.==Date(8)).&(df.wave.!=Date(11)))
+        
+        df = DataFrame(hrs)
+        rot = ifelse.(isodd.(df.hhidpn), 1, 2)
+        df.wave_hosp = rotatingtime(rot, df.wave_hosp)
+        df.wave = rotatingtime(rot, df.wave)
+        e = rotatingtime.((1,2), 11)
+        nt = merge(nt, (data=df, tr=dynamic(:wave, -1), pr=nevertreated(e), treatintterms=TermSet(), xterms=TermSet(), esample=trues(size(hrs,1))))
+        ret = (esample=trues(size(df,1)), tr_rows=getfield.(df.wave_hosp, :time).!=11)
+        @test checkvars!(nt...) == ret
+        df.wave_hosp = rotatingtime(1, hrs.wave_hosp)
+        df.wave = rotatingtime(1, hrs.wave)
+        @test checkvars!(nt...) == ret
     end
 
     @testset "StatsStep" begin

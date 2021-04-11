@@ -2,6 +2,7 @@ using Test
 using DiffinDiffsBase
 
 using DataFrames
+using Dates: Date, Year
 using DiffinDiffsBase: @fieldequal, unpack, @unpack, hastreat, parse_treat,
     isintercept, isomitsintercept, parse_intercept!,
     ncol, nrow,

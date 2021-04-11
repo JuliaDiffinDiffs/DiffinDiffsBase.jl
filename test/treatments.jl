@@ -12,14 +12,16 @@ end
 @testset "dynamic" begin
     dt0 = DynamicTreatment(:month, nothing, SharpDesign())
     dt1 = DynamicTreatment(:month, -1, SharpDesign())
+    dt1y = DynamicTreatment(:month, Year(-1), SharpDesign())
     dt2 = DynamicTreatment(:month, [-2,-1], SharpDesign())
+    dt2y = DynamicTreatment(:month, Year.([-2,-1]), SharpDesign())
     
     @testset "inner constructor" begin
         @test DynamicTreatment(:month, [], SharpDesign()) == dt0
         @test DynamicTreatment(:month, [-1], SharpDesign()) == dt1
         @test DynamicTreatment(:month, [-1,-1,-2], SharpDesign()) == dt2
-        @test DynamicTreatment(:month, [-1.0], SharpDesign()) == dt1
-        @test_throws InexactError DynamicTreatment(:month, [-1.5], SharpDesign())
+        @test_throws MethodError DynamicTreatment(:month, [-1.0], SharpDesign())
+        @test_throws MethodError DynamicTreatment(:month, [-1.5], SharpDesign())
     end
 
     @testset "without @formula" begin
@@ -29,6 +31,9 @@ end
         @test dynamic(:month, [-1], sharp()) == dt1
         @test dynamic(:month, -2:-1) == dt2
         @test dynamic(:month, Set([-1,-2]), sharp()) == dt2
+
+        @test dynamic(:month, Year(-1)) == dt1y
+        @test dynamic(:month, (Year(-1), Year(-2))) == dt2y
     end
 
     @testset "with @formula" begin
@@ -74,6 +79,12 @@ end
             Sharp dynamic treatment:
               column name of time variable: month
               excluded relative time: -2, -1"""
+
+        @test sprint(show, dt2y) == "Dynamic{S}(Year(-2), Year(-1))"
+        @test sprint(show, MIME("text/plain"), dt2y) == """
+            Sharp dynamic treatment:
+              column name of time variable: month
+              excluded relative time: -2 years, -1 year"""
     end
 end
 
