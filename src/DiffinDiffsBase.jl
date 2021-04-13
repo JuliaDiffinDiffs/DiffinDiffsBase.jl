@@ -4,6 +4,7 @@ using Base: @propagate_inbounds
 using CSV
 using CodecZlib: GzipDecompressorStream
 using Combinatorics: combinations
+using DataAPI
 using DataAPI: refarray, refpool, invrefpool
 using Dates: Period, TimeType
 using LinearAlgebra: Diagonal
@@ -18,7 +19,7 @@ using StatsModels: Schema
 using Tables
 using Tables: AbstractColumns, istable, columnnames, getcolumn
 
-import Base: ==, -, isless, show, parent, view, diff
+import Base: ==, +, -, *, isless, show, parent, view, diff
 import Base: eltype, firstindex, lastindex, getindex, iterate, length, sym_in
 import StatsBase: coef, vcov, confint, nobs, dof_residual, responsename, coefnames, weights,
     coeftable
@@ -41,6 +42,10 @@ export cb,
        apply_and!,
        apply_and,
        TableIndexedMatrix,
+
+       ScaledArray,
+       ScaledVector,
+       ScaledMatrix,
 
        TreatmentSharpness,
        SharpDesign,
@@ -73,6 +78,7 @@ export cb,
 
        findcell,
        cellrows,
+       settime,
        PanelStructure,
        setpanel,
        findlag!,
@@ -121,6 +127,7 @@ export cb,
 
 include("utils.jl")
 include("tables.jl")
+include("ScaledArrays.jl")
 include("treatments.jl")
 include("parallels.jl")
 include("terms.jl")

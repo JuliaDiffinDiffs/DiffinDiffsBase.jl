@@ -108,8 +108,21 @@ function cellrows(cols::VecColumnTable, refrows::IdDict)
     return cells, rows
 end
 
+function settime(time::AbstractArray, step; ref_type::Type{<:Signed}=Int32, rotation=nothing)
+    eltype(time) <: Integer && step === nothing && (step = 1)
+    time = ScaledArray(time, step; ref_type=ref_type)
+    rotation === nothing || (time.refs = rotatingtime(rotation, time.refs))
+    return time
+end
+
+function settime(data, timename::Union{Symbol,Integer}, step;
+        ref_type::Type{<:Signed}=Int32, rotation=nothing)
+    checktable(data)
+    return settime(getcolumn(data, timename), step; ref_type=ref_type, rotation=rotation)
+end
+
 """
-    PanelStructure{R<:Signed, T1, T2<:ValidTimeType}
+    PanelStructure{R<:Signed, IP<:AbstractVector, TP<:AbstractVector}
 
 Panel data structure defined by unique combinations of unit ids and time periods.
 It contains the information required for certain operations such as
@@ -119,42 +132,21 @@ See also [`setpanel`](@ref).
 # Fields
 - `refs::Vector{R}`: reference values that allow obtaining time gaps by taking differences.
 - `invrefs::Dict{R, Int}`: inverse map from `refs` to indices.
-- `idpool::Vector{T1}`: unique unit ids.
-- `timepool::Vector{T2}`: sorted unique time periods.
+- `idpool::IP`: unique unit ids.
+- `timepool::TP`: sorted unique time periods.
 - `laginds::Dict{Int, Vector{Int}}`: a map from lag distances to vectors of indices of lagged values.
 """
-struct PanelStructure{R<:Signed, T1, T2<:ValidTimeType}
+struct PanelStructure{R<:Signed, IP<:AbstractVector, TP<:AbstractVector}
     refs::Vector{R}
     invrefs::Dict{R, Int}
-    idpool::Vector{T1}
-    timepool::Vector{T2}
+    idpool::IP
+    timepool::TP
     laginds::Dict{Int, Vector{Int}}
-    function PanelStructure(refs::Vector, idpool::Vector, timepool::Vector,
-            laginds::Dict=Dict{Int, Vector{Int}}())
-        invrefs = Dict{eltype(refs), Int}(ref=>i for (i, ref) in enumerate(refs))
-        return new{eltype(refs), eltype(idpool), eltype(timepool)}(
-            refs, invrefs, idpool, timepool, laginds)
+    function PanelStructure(refs::Vector{R}, idpool::IP, timepool::TP,
+            laginds::Dict=Dict{Int, Vector{Int}}()) where {R,IP,TP}
+        invrefs = Dict{R, Int}(ref=>i for (i, ref) in enumerate(refs))
+        return new{R,IP,TP}(refs, invrefs, idpool, timepool, laginds)
     end
-end
-
-function _scaledrefs_pool(col::AbstractArray, step, ref_type::Type{<:Signed}=Int32)
-    refs, pool, labeled = _refs_pool(col, ref_type)
-    labeled && (refs = copy(refs))
-    npool = length(pool)
-    spool = sort(pool)
-    if step === nothing
-        gaps = view(spool, 2:npool) - view(spool, 1:npool-1)
-        step = minimum(gaps)
-    end
-    pool1 = spool[1]
-    refmap = Vector{eltype(refs)}(undef, npool)
-    @inbounds for i in 1:npool
-        refmap[i] = (pool[i] - pool1) ÷ step + 1
-    end
-    @inbounds for i in 1:length(refs)
-        refs[i] = refmap[refs[i]]
-    end
-    return refs, spool
 end
 
 """
@@ -185,8 +177,10 @@ function setpanel(id::AbstractArray, time::AbstractArray, timestep=nothing;
     length(id) == length(time) || throw(DimensionMismatch(
         "id has length $(length(id)) while time has length $(length(time))"))
     refs, idpool, labeled = _refs_pool(id)
-    labeled && (refs = copy(refs))
-    trefs, tpool = _scaledrefs_pool(time, timestep, ref_type)
+    labeled && (refs = copy(refs); idpool = copy(idpool))
+    time = settime(time, timestep; ref_type=ref_type)
+    trefs = refarray(time)
+    tpool = refpool(time)
     # Multiply 2 to create enough gaps between id groups for the largest possible l
     mult = 2 * length(tpool)
     _mult!(trefs, refs, mult)
@@ -195,12 +189,12 @@ end
 
 function setpanel(data, idname::Union{Symbol,Integer}, timename::Union{Symbol,Integer},
         timestep=nothing; ref_type::Type{<:Signed}=Int32)
-    istable(data) || throw(ArgumentError("input data is not Tables.jl-compatible"))
-    return setpanel(getcolumn(data, idname), getcolumn(data, timename), timestep,
+    checktable(data)
+    return setpanel(getcolumn(data, idname), getcolumn(data, timename), timestep;
         ref_type=ref_type)
 end
 
-show(io::IO, panel::PanelStructure) = print(io, "Panel Structure")
+show(io::IO, ::PanelStructure) = print(io, "Panel Structure")
 
 function show(io::IO, ::MIME"text/plain", panel::PanelStructure)
     println(io, "Panel Structure:")

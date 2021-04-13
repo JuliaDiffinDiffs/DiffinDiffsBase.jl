@@ -102,7 +102,7 @@ struct NeverTreatedParallel{C,S} <: TrendParallel{C,S}
     c::C
     s::S
     function NeverTreatedParallel(e, c::ParallelCondition, s::ParallelStrength)
-        e = e isa TimeType ? (e,) : (unique!(sort!([e...]))...,)
+        e = applicable(iterate, e) ? (unique!(sort!([e...]))...,) : (e,)
         isempty(e) && error("field `e` cannot be empty")
         return new{typeof(c),typeof(s)}(e, c, s)
     end
@@ -184,9 +184,9 @@ struct NotYetTreatedParallel{C,S} <: TrendParallel{C,S}
     c::C
     s::S
     function NotYetTreatedParallel(e, ecut, c::ParallelCondition, s::ParallelStrength)
-        e = e isa TimeType ? (e,) : (unique!(sort!([e...]))...,)
+        e = applicable(iterate, e) ? (unique!(sort!([e...]))...,) : (e,)
         isempty(e) && throw(ArgumentError("field e cannot be empty"))
-        ecut = ecut isa TimeType ? (ecut,) : (unique!(sort!([ecut...]))...,)
+        ecut = applicable(iterate, ecut) ? (unique!(sort!([ecut...]))...,) : (ecut,)
         isempty(ecut) && throw(ArgumentError("field ecut cannot be empty"))
         eltype(e) == eltype(ecut) ||
             throw(ArgumentError("e and ecut must have the same element type"))

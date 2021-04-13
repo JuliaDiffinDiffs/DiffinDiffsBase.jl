@@ -147,16 +147,21 @@ function exampledata(name::Union{Symbol,String})
     return open(path) |> GzipDecompressorStream |> read |> CSV.File
 end
 
-struct RotatingTimeValue{R, T<:Union{Signed, TimeType}}
+struct RotatingTimeValue{R, T}
     rotation::R
     time::T
-    RotatingTimeValue(rotation, time) =
-        new{typeof(rotation), typeof(time)}(rotation, time)
 end
 
 rotatingtime(rotation, time) = RotatingTimeValue.(rotation, time)
 
-function (-)(x::RotatingTimeValue, y::RotatingTimeValue)
++(x::RotatingTimeValue, y) = RotatingTimeValue(x.rotation, x.time + y)
++(x, y::RotatingTimeValue) = RotatingTimeValue(y.rotation, x + y.time)
+-(x::RotatingTimeValue, y) = RotatingTimeValue(x.rotation, x.time - y)
+-(x, y::RotatingTimeValue) = RotatingTimeValue(y.rotation, x - y.time)
+*(x::RotatingTimeValue, y) = RotatingTimeValue(x.rotation, x.time * y)
+*(x, y::RotatingTimeValue) = RotatingTimeValue(y.rotation, x * y.time)
+
+function -(x::RotatingTimeValue, y::RotatingTimeValue)
     rx = x.rotation
     ry = y.rotation
     rx == ry || throw(ArgumentError("x has rotation $rx while y has rotation $ry"))
@@ -169,7 +174,9 @@ function isless(x::RotatingTimeValue, y::RotatingTimeValue)
     return isequal(rx, ry) ? isless(x.time, y.time) : isless(rx, ry)
 end
 
-(==)(x::RotatingTimeValue, y::RotatingTimeValue) =
+@propagate_inbounds getindex(X, i::RotatingTimeValue{<:Any, <:Integer}) = X[i.time]
+
+==(x::RotatingTimeValue, y::RotatingTimeValue) =
     x.rotation == y.rotation && x.time == y.time
 
 show(io::IO, x::RotatingTimeValue) = print(io, x.rotation, "_", x.time)
@@ -179,5 +186,11 @@ function show(io::IO, ::MIME"text/plain", x::RotatingTimeValue)
     print(io, "  time:     ", x.time)
 end
 
-const ValidPeriodType = Union{Signed, Period}
-const ValidTimeType = Union{Signed, TimeType, RotatingTimeValue}
+const ValidTimeType = Union{Signed, TimeType, Period, RotatingTimeValue}
+
+function checktable(data)
+    istable(data) ||
+        throw(ArgumentError("data of type $(typeof(data)) is not Tables.jl-compatible"))
+    Tables.columnaccess(data) && Tables.columns(data) === data ||
+        throw(ArgumentError("data of type $(typeof(data)) is not a column table"))
+end

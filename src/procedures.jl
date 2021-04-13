@@ -6,10 +6,7 @@ and find valid rows for options `subset` and `weightname`.
 See also [`CheckData`](@ref).
 """
 function checkdata(data, subset::Union{BitVector, Nothing}, weightname::Union{Symbol, Nothing})
-    istable(data) ||
-        throw(ArgumentError("data of type $(typeof(data)) is not Tables.jl-compatible"))
-    Tables.columnaccess(data) && Tables.columns(data) === data ||
-        throw(ArgumentError("data of type $(typeof(data)) is not a column table"))
+    checktable(data)
     nrow = Tables.rowcount(data)
     if subset !== nothing
         length(subset) == nrow || throw(DimensionMismatch(
@@ -61,29 +58,26 @@ const GroupTerms = StatsStep{:GroupTerms, typeof(groupterms), false}
 
 required(::GroupTerms) = (:treatintterms, :xterms)
 
-function checktreatvars(tr::DynamicTreatment{SharpDesign}, pr::TrendParallel{Unconditional},
+function checktreatvars(::DynamicTreatment{SharpDesign}, pr::TrendParallel{Unconditional},
         treatvars::Vector{Symbol}, data)
     # treatvars should be cohort and time variables
-    T1 = nonmissingtype(eltype(getcolumn(data, treatvars[1])))
-    T2 = nonmissingtype(eltype(getcolumn(data, treatvars[2])))
+    col1 = getcolumn(data, treatvars[1])
+    col2 = getcolumn(data, treatvars[2])
+    T1 = nonmissingtype(eltype(col1))
+    T2 = nonmissingtype(eltype(col2))
     T1 == T2 || throw(ArgumentError(
         "nonmissing elements from columns $(treatvars[1]) and $(treatvars[2]) have different types $T1 and $T2"))
+    T1 <: Union{Integer, RotatingTimeValue{<:Any, <:Integer}} ||
+        col1 isa ScaledArray && col2 isa ScaledArray ||
+        throw(ArgumentError("data columns $(treatvars[1]) and $(treatvars[2]) must either have integer elements or be ScaledArrays; see settime"))
     T1 <: ValidTimeType ||
         throw(ArgumentError("data column $(treatvars[1]) has unaccepted element type $(T1)"))
-    if T1 <: Union{TimeType, RotatingTimeValue{<:Any, <:TimeType}}
-        eltype(tr.exc) <: Period || throw(ArgumentError(
-            "element type $(eltype(tr.exc)) of excluded periods from $tr does not match element type $T1 from data; expect a subtype of Period"))
-        eltype(pr.e) == T1 || throw(ArgumentError("element type $(eltype(pr.e)) of control cohorts from $pr does not match element type $T1 from data; expect $T1"))
-    else
-        eltype(tr.exc) <: Integer || throw(ArgumentError(
-            "element type $(eltype(tr.exc)) of excluded periods from $tr does not match element type $T1 from data; expect integers"))
-        eltype(pr.e) == T1 || throw(ArgumentError("element type $(eltype(pr.e)) of control cohorts from $pr does not match element type $T1 from data; expect $T1"))
-    end
+    eltype(pr.e) == T1 || throw(ArgumentError("element type $(eltype(pr.e)) of control cohorts from $pr does not match element type $T1 from data; expect $T1"))
 end
 
 function _overlaptime(tr::DynamicTreatment, tr_rows::BitVector, data)
-    control_time = Set(view(getcolumn(data, tr.time), .!tr_rows))
-    treated_time = Set(view(getcolumn(data, tr.time), tr_rows))
+    control_time = Set(view(refarray(getcolumn(data, tr.time)), .!tr_rows))
+    treated_time = Set(view(refarray(getcolumn(data, tr.time)), tr_rows))
     return intersect(control_time, treated_time), control_time, treated_time
 end
 
@@ -99,17 +93,17 @@ function overlap!(esample::BitVector, tr_rows::BitVector, tr::DynamicTreatment,
         pr::NotYetTreatedParallel{Unconditional}, treatname::Symbol, data)
     overlap_time, _c, _t = _overlaptime(tr, tr_rows, data)
     timetype = eltype(overlap_time)
-    if !(timetype isa RotatingTimeValue)
+    if !(timetype <: RotatingTimeValue)
         ecut = pr.ecut[1]
         valid_cohort = filter(x -> x < ecut || x in pr.e, overlap_time)
         filter!(x -> x < ecut, overlap_time)
     else
         ecut = IdDict(e.rotation=>e.time for e in pr.ecut)
-        valid_cohort = filter(x -> x < ecut[x.rotation] || x in pr.e, overlap_time)
-        filter!(x -> x < ecut[x.rotation], overlap_time)
+        valid_cohort = filter(x -> x.time < ecut[x.rotation] || x in pr.e, overlap_time)
+        filter!(x -> x.time < ecut[x.rotation], overlap_time)
     end
-    esample .&= (getcolumn(data, tr.time).∈(overlap_time,)) .&
-            (getcolumn(data, treatname).∈(valid_cohort,))
+    esample .&= (refarray(getcolumn(data, tr.time)).∈(overlap_time,)) .&
+        (refarray(getcolumn(data, treatname)).∈(valid_cohort,))
     tr_rows .&= esample
 end
 

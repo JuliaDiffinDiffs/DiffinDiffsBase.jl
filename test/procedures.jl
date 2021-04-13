@@ -87,30 +87,19 @@ end
         ret = (esample=df.wave_hosp.∈((8,11),), tr_rows=hrs.wave_hosp.==8)
         @test checkvars!(nt...) == ret
 
-        df.wave_hosp = Date.(df.wave_hosp)
-        @test_throws ArgumentError checkvars!(nt...)
-        df.wave = Date.(df.wave)
-        @test_throws ArgumentError checkvars!(nt...)
-        nt = merge(nt, (tr=dynamic(:wave, Year(-1)),))
-        @test_throws ArgumentError checkvars!(nt...)
-        nt = merge(nt, (pr=nevertreated(Date(11)),))
-        @test checkvars!(nt...) == ret
-        nt = merge(nt, (pr=notyettreated(Date(11)),))
-        @test checkvars!(nt...) ==
-            (esample=(df.wave_hosp.∈((Date(8),Date(11)),)).&(df.wave.!=Date(11)),
-            tr_rows=(df.wave_hosp.==Date(8)).&(df.wave.!=Date(11)))
-        
         df = DataFrame(hrs)
         rot = ifelse.(isodd.(df.hhidpn), 1, 2)
         df.wave_hosp = rotatingtime(rot, df.wave_hosp)
         df.wave = rotatingtime(rot, df.wave)
         e = rotatingtime.((1,2), 11)
         nt = merge(nt, (data=df, tr=dynamic(:wave, -1), pr=nevertreated(e), treatintterms=TermSet(), xterms=TermSet(), esample=trues(size(hrs,1))))
-        ret = (esample=trues(size(df,1)), tr_rows=getfield.(df.wave_hosp, :time).!=11)
-        @test checkvars!(nt...) == ret
-        df.wave_hosp = rotatingtime(1, hrs.wave_hosp)
-        df.wave = rotatingtime(1, hrs.wave)
-        @test checkvars!(nt...) == ret
+        @test checkvars!(nt...) == (esample=trues(size(df,1)),
+            tr_rows=getfield.(df.wave_hosp, :time).!=11)
+        df.wave_hosp = rotatingtime(2, hrs.wave_hosp)
+        df.wave = rotatingtime(2, hrs.wave)
+        nt = merge(nt, (pr=notyettreated(e),))
+        @test checkvars!(nt...) == (esample=getfield.(df.wave, :time).!=11,
+            tr_rows=(getfield.(df.wave_hosp, :time).!=11).&(getfield.(df.wave, :time).!=11))
     end
 
     @testset "StatsStep" begin

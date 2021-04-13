@@ -37,6 +37,14 @@ end
     @test getfield.(rt, :rotation) == rot
     @test getfield.(rt, :time) == time
 
+    rtd = rotatingtime(1, Date(1))
+    rt1 = rotatingtime(1, 1)
+    @test rtd + Year(1) == Year(1) + rtd == rotatingtime(1, Date(2))
+    @test rtd - Year(1) == rotatingtime(1, Date(0))
+    @test 1 - rt1 == rotatingtime(1, 0)
+    @test_throws MethodError Year(3) - rtd
+    @test 2 * rt1 == rt1 * 2 == rotatingtime(1, 2)
+
     @test rt[1] - rt[2] == -1
     @test_throws ArgumentError rt[1] - rt[6]
 
@@ -50,4 +58,9 @@ end
         RotatingTimeValue{Int64,$(w)Int64}:
           rotation: 5
           time:     1"""
+end
+
+@testset "checktable" begin
+    @test_throws ArgumentError checktable(rand(3,3))
+    @test_throws ArgumentError checktable([(a=1, b=2), (a=1, b=2)])
 end
