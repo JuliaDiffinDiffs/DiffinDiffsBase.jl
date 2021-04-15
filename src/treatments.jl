@@ -41,12 +41,12 @@ See also [`dynamic`](@ref).
 
 # Fields
 - `time::Symbol`: column name of data representing calendar time.
-- `exc::Tuple{Vararg{Integer}}`: excluded relative time.
+- `exc::Tuple{Vararg{Int}}`: excluded relative time.
 - `s::S`: an instance of [`TreatmentSharpness`](@ref).
 """
 struct DynamicTreatment{S<:TreatmentSharpness} <: AbstractTreatment
     time::Symbol
-    exc::Tuple{Vararg{Integer}}
+    exc::Tuple{Vararg{Int}}
     s::S
     function DynamicTreatment(time::Symbol, exc, s::TreatmentSharpness)
         exc = exc !== nothing ? (unique!(sort!([exc...]))...,) : ()
