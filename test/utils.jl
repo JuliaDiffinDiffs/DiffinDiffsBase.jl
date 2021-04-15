@@ -52,6 +52,14 @@ end
     @test isless(rt[6], rt[1])
     @test rt[1] == RotatingTimeValue(Int32(5), Int32(1))
 
+    @test checkindex(Bool, 1:5, rt1)
+    @test checkindex(Bool, 2:5, rt1) == false
+    X = 1:5
+    @test X[rt1] == 1
+    rts = rotatingtime(1, 2:3)
+    @test X[rts] == 2:3
+    @test_throws BoundsError (1:2)[rts]
+
     @test sprint(show, rt[1]) == "5_1"
     w = VERSION < v"1.6.0" ? "" : " "
     @test sprint(show, MIME("text/plain"), rt[1]) == """

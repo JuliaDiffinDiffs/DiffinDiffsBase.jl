@@ -91,7 +91,7 @@ end
         rot = ifelse.(isodd.(df.hhidpn), 1, 2)
         df.wave_hosp = rotatingtime(rot, df.wave_hosp)
         df.wave = rotatingtime(rot, df.wave)
-        e = rotatingtime.((1,2), 11)
+        e = rotatingtime((1,2), 11)
         nt = merge(nt, (data=df, tr=dynamic(:wave, -1), pr=nevertreated(e), treatintterms=TermSet(), xterms=TermSet(), esample=trues(size(hrs,1))))
         @test checkvars!(nt...) == (esample=trues(size(df,1)),
             tr_rows=getfield.(df.wave_hosp, :time).!=11)

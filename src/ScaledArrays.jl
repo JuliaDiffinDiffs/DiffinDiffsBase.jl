@@ -5,6 +5,18 @@ mutable struct RefArray{R}
     a::R
 end
 
+"""
+    ScaledArray{T,N,RA,S,P} <: AbstractArray{T,N}
+
+An array type that stores data as indices of a range.
+
+# Fields
+- `refs::RA<:AbstractArray{<:Any, N}`: an array of indices.
+- `start::T`: the starting value of the range.
+- `step::S`: the step size of the range.
+- `stop::T`: the stopping value of the range.
+- `pool::P<:AbstractRange{T}`: a range that covers all possible values stored by the array.
+"""
 mutable struct ScaledArray{T,N,RA,S,P} <: AbstractArray{T,N}
     refs::RA
     start::T
@@ -47,6 +59,8 @@ function validstartstepstop(x::AbstractArray, start, step, stop, usepool)
     step === nothing && throw(ArgumentError("step cannot be nothing"))
     pool = DataAPI.refpool(x)
     xmin, xmax = usepool && pool !== nothing ? extrema(pool) : extrema(x)
+    applicable(+, xmin, step) || throw(ArgumentError(
+        "step of type $(typeof(step)) does not match array with element type $(eltype(x))"))
     if xmin + step > xmin
         start = _validmin(start, xmin, true)
         stop = _validmax(stop, xmax, false)
@@ -60,33 +74,33 @@ function validstartstepstop(x::AbstractArray, start, step, stop, usepool)
     return convert(T, start), convert(T, stop)
 end
 
-function _scaledlabel(x::AbstractArray, step, ref_type::Type{<:Signed}=DEFAULT_REF_TYPE;
-        start=nothing, stop=nothing, usepool=true)
+function _scaledlabel(x::AbstractArray, step, reftype::Type{<:Signed}=DEFAULT_REF_TYPE;
+        start=nothing, stop=nothing, usepool::Bool=true)
     start, stop = validstartstepstop(x, start, step, stop, usepool)
     pool = start:step:stop
-    while typemax(ref_type) < length(pool)
-        ref_type = widen(ref_type)
+    while typemax(reftype) < length(pool)
+        reftype = widen(reftype)
     end
-    refs = similar(x, ref_type)
+    refs = similar(x, reftype)
     @inbounds for i in eachindex(refs)
         refs[i] = length(start:step:x[i])
     end
     return refs, start, step, stop
 end
 
-function ScaledArray(x::AbstractArray, ref_type::Type, start, step, stop, usepool=true)
-    refs, start, step, stop = _scaledlabel(x, step, ref_type; start=start, stop=stop, usepool=usepool)
+function ScaledArray(x::AbstractArray, reftype::Type, start, step, stop, usepool::Bool=true)
+    refs, start, step, stop = _scaledlabel(x, step, reftype; start=start, stop=stop, usepool=usepool)
     return ScaledArray(RefArray(refs), start, step, stop)
 end
 
-function ScaledArray(sa::ScaledArray, ref_type::Type, start, step, stop, usepool=true)
+function ScaledArray(sa::ScaledArray, reftype::Type, start, step, stop, usepool::Bool=true)
     if step !== nothing && step != sa.step
-        refs, start, step, stop = _scaledlabel(sa, step, ref_type; start=start, stop=stop, usepool=usepool)
+        refs, start, step, stop = _scaledlabel(sa, step, reftype; start=start, stop=stop, usepool=usepool)
         return ScaledArray(RefArray(refs), start, step, stop)
     else
         step = sa.step
         start, stop = validstartstepstop(sa, start, step, stop, usepool)
-        refs = similar(sa.refs, ref_type)
+        refs = similar(sa.refs, reftype)
         if start == sa.start
             copy!(refs, sa.refs)
         elseif start < sa.start && start < stop || start > sa.start && start > stop
@@ -100,21 +114,32 @@ function ScaledArray(sa::ScaledArray, ref_type::Type, start, step, stop, usepool
     end
 end
 
-ScaledArray(x::AbstractArray, start, step, stop;
-    ref_type::Type=DEFAULT_REF_TYPE, usepool=true) =
-        ScaledArray(x, ref_type, start, step, stop, usepool)
+"""
+    ScaledArray(x::AbstractArray, start, step[, stop]; reftype=Int32, usepool=true)
+    ScaledArray(x::AbstractArray, step; reftype=Int32, start, stop, usepool=true)
 
-ScaledArray(sa::ScaledArray, start, step, stop;
-    ref_type::Type=eltype(refarray(sa)), usepool=true) =
-        ScaledArray(sa, ref_type, start, step, stop, usepool)
+Construct a `ScaledArray` from `x` given the `step` size.
+If `start` or `stop` is not specified, it will be chosen based on the extrema of `x`.
 
-ScaledArray(x::AbstractArray, step; ref_type::Type=DEFAULT_REF_TYPE,
-    start=nothing, stop=nothing, usepool=true) =
-        ScaledArray(x, ref_type, start, step, stop, usepool)
+# Keywords
+- `reftype::Type=Int32`: the element type of field `refs`.
+- `usepool::Bool=true`: find extrema of `x` based on `DataAPI.refpool`.
+"""
+ScaledArray(x::AbstractArray, start, step, stop=nothing;
+    reftype::Type=DEFAULT_REF_TYPE, usepool::Bool=true) =
+        ScaledArray(x, reftype, start, step, stop, usepool)
 
-ScaledArray(sa::ScaledArray, step=nothing; ref_type::Type=eltype(refarray(sa)),
-    start=nothing, stop=nothing, usepool=true) =
-        ScaledArray(sa, ref_type, start, step, stop, usepool)
+ScaledArray(sa::ScaledArray, start, step, stop=nothing;
+    reftype::Type=eltype(refarray(sa)), usepool::Bool=true) =
+        ScaledArray(sa, reftype, start, step, stop, usepool)
+
+ScaledArray(x::AbstractArray, step; reftype::Type=DEFAULT_REF_TYPE,
+    start=nothing, stop=nothing, usepool::Bool=true) =
+        ScaledArray(x, reftype, start, step, stop, usepool)
+
+ScaledArray(sa::ScaledArray, step=nothing; reftype::Type=eltype(refarray(sa)),
+    start=nothing, stop=nothing, usepool::Bool=true) =
+        ScaledArray(sa, reftype, start, step, stop, usepool)
 
 Base.size(sa::ScaledArray) = size(sa.refs)
 Base.IndexStyle(::Type{<:ScaledArray{T,N,RA}}) where {T,N,RA} = IndexStyle(RA)

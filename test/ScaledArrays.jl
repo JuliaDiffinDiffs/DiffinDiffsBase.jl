@@ -26,7 +26,9 @@ using DiffinDiffsBase: RefArray, validstartstepstop, _scaledlabel
     ss = validstartstepstop(s, 1, 2, 9, true)
     @test ss == (1.0, 9.0)
     @test typeof(ss) == Tuple{Float64, Float64}
-
+    @test_throws ArgumentError validstartstepstop(1:5, 1, nothing, 1, true)
+    @test_throws ArgumentError validstartstepstop(1:5, 1, Year(1), 1, true)
+    @test_throws ArgumentError validstartstepstop(1:5, 1, 0, 1, true)
 
     sa1 = ScaledArray(p, 2, usepool=false)
     @test sa1.refs == [1, repeat(1:4, inner=2)..., 4]
@@ -35,14 +37,14 @@ using DiffinDiffsBase: RefArray, validstartstepstop, _scaledlabel
     @test sa1.stop == 9
     @test sa1 != sa
 
-    sa2 = ScaledArray(sa1, 1, start=1, stop=10)
-    @test sa2.refs == [2, repeat(2:2:8, inner=2)..., 8]
-    @test sa2.start == 1
+    sa2 = ScaledArray(sa1, 2, 1, 10)
+    @test sa2.refs == [1, repeat(1:2:7, inner=2)..., 7]
+    @test sa2.start == 2
     @test sa2.step == 1
     @test sa2.stop == 10
     @test sa2 == sa1
 
-    sa3 = ScaledArray(sa2, ref_type=Int16, start=0, stop=8, usepool=false)
+    sa3 = ScaledArray(sa2, reftype=Int16, start=0, stop=8, usepool=false)
     @test sa3.refs == [3, repeat(3:2:9, inner=2)..., 9]
     @test eltype(sa3.refs) == Int16
     @test sa3.start == 0
@@ -56,7 +58,11 @@ using DiffinDiffsBase: RefArray, validstartstepstop, _scaledlabel
     @test sa4.stop == 8
     @test sa4 == sa3
 
-    @test_throws ArgumentError ScaledArray(sa4, stop=7, usepool=false)
+    sa5 = ScaledArray(sa4, usepool=false)
+    @test sa5.refs == sa4.refs
+    @test sa5.refs !== sa4.refs
+
+    @test_throws ArgumentError ScaledArray(sa5, stop=7, usepool=false)
 
     @test size(sa) == (10,)
     @test IndexStyle(typeof(sa)) == IndexLinear()
@@ -112,4 +118,8 @@ end
     @test eltype(refs) == Int16
     @test typeof(start) == Float64
     @test typeof(step) == Int
+
+    refs, start, step, stop = _scaledlabel(1:typemax(Int16), 1, Int8)
+    @test refs == 1:typemax(Int16)
+    @test eltype(refs) == Int16
 end

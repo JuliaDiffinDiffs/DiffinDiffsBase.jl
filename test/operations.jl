@@ -37,6 +37,17 @@ end
     @test rows[1] == intersect(findall(x->x==7, hrs.wave), findall(x->x==8, hrs.wave_hosp))
 end
 
+@testset "settime" begin
+    hrs = exampledata("hrs")
+    t = settime(hrs, :wave, step=2, reftype=Int16)
+    @test eltype(refarray(t)) == Int16
+    @test sort!(unique(refarray(t))) == 1:3
+    t = settime(hrs, :wave, rotation=isodd.(hrs.wave))
+    @test eltype(t) == eltype(hrs.wave)
+    @test eltype(refarray(t)) == RotatingTimeValue{Bool, Int32}
+    @test all(x->x.rotation==isodd(x.time), t.refs)
+end
+
 @testset "PanelStructure" begin
     hrs = exampledata("hrs")
     N = size(hrs, 1)
@@ -47,7 +58,7 @@ end
     @test length(panel.idpool) == 656
     @test panel.timepool == 7:11
 
-    panel1 = setpanel(hrs, :hhidpn, :wave, 0.5, ref_type=Int)
+    panel1 = setpanel(hrs, :hhidpn, :wave, step=0.5, reftype=Int)
     @test view(diff(panel1.refs), inidbounds) == 2 .* view(diff(hrs.wave), inidbounds)
     @test panel1.timepool == 7.0:0.5:11.0
     @test eltype(panel1.refs) == Int
