@@ -42,8 +42,11 @@ end
     t = settime(hrs, :wave, step=2, reftype=Int16)
     @test eltype(refarray(t)) == Int16
     @test sort!(unique(refarray(t))) == 1:3
+    t = settime(hrs, :wave, step=0.5)
+    @test eltype(t) == Float64
+
     t = settime(hrs, :wave, rotation=isodd.(hrs.wave))
-    @test eltype(t) == eltype(hrs.wave)
+    @test eltype(t) == RotatingTimeValue{Bool, eltype(hrs.wave)}
     @test eltype(refarray(t)) == RotatingTimeValue{Bool, Int32}
     @test all(x->x.rotation==isodd(x.time), t.refs)
 end

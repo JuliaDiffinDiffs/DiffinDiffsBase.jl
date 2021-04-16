@@ -23,6 +23,7 @@ include("testutils.jl")
 
 const tests = [
     "utils",
+    "time",
     "tables",
     "ScaledArrays",
     "terms",
