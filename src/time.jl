@@ -68,7 +68,6 @@ Base.iterate(x::RotatingTimeValue, ::Any) = nothing
 
 Base.length(x::RotatingTimeValue) = 1
 
-
 show(io::IO, x::RotatingTimeValue) = print(io, x.rotation, "_", x.time)
 function show(io::IO, ::MIME"text/plain", x::RotatingTimeValue)
     println(io, typeof(x), ':')

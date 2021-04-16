@@ -47,6 +47,10 @@
     @test X[rts] == 2:3
     @test_throws BoundsError (1:2)[rts]
 
+    @test iterate(rt1) == (rt1, nothing)
+    @test iterate(rt1, 1) === nothing
+    @test length(rt1) == 1
+
     @test sprint(show, rt[1]) == "5_1"
     w = VERSION < v"1.6.0" ? "" : " "
     @test sprint(show, MIME("text/plain"), rt[1]) == """

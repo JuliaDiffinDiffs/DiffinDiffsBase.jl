@@ -1,3 +1,10 @@
+@testset "_mult!" begin
+    a = collect(0:5)
+    b = collect(1:6)
+    _mult!(a, b, 6)
+    @test a == 0:7:35
+end
+
 @testset "findcell" begin
     hrs = exampledata("hrs")
     @test_throws ArgumentError findcell((), hrs)
