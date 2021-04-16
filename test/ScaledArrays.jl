@@ -58,11 +58,13 @@ using DiffinDiffsBase: RefArray, validpool, scaledlabel
     @test refarray(sa) === sa.refs
     @test refvalue(sa, 1) == Date(1)
     @test refpool(sa) === sa.pool
+    @test invrefpool(sa) === sa.invpool
 
     ssa = view(sa, 3:4)
     @test refarray(ssa) == view(sa.refs, 3:4)
     @test refvalue(ssa, 1) == Date(1)
     @test refpool(ssa) === sa.pool
+    @test invrefpool(ssa) === sa.invpool
 
     @test sa[1] == Date(1)
     @test sa[1:2] == sa[[1,2]] == sa[(1:10).<3] == Date.(1:2)

@@ -1,7 +1,7 @@
 using Test
 using DiffinDiffsBase
 
-using DataAPI: refarray, refvalue, refpool
+using DataAPI: refarray, refvalue, refpool, invrefpool
 using DataFrames
 using Dates: Date, Year
 using DiffinDiffsBase: @fieldequal, unpack, @unpack, checktable, hastreat, parse_treat,
