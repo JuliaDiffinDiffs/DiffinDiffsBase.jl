@@ -152,7 +152,7 @@ function checkvars!(data, tr::AbstractTreatment, pr::AbstractParallel,
     end
     # Values of treatintterms from untreated units are ignored
     tr_rows = copy(esample)
-    aux[esample] .= istreated.(Ref(pr), view(getcolumn(data, treatname), esample))
+    istreated!(view(aux, esample), pr, view(getcolumn(data, treatname), esample))
     tr_rows[esample] .&= view(aux, esample)
     treatintvars = termvars(treatintterms)
     for v in treatintvars

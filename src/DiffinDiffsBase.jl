@@ -75,6 +75,7 @@ export cb,
        NotYetTreatedParallel,
        notyettreated,
        istreated,
+       istreated!,
 
        TermSet,
        termset,
