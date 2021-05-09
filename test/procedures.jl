@@ -9,15 +9,19 @@
         ret = checkdata!(nt...)
         @test ret.esample == BitArray(hrs.male)
 
+        df = DataFrame(hrs)
+        allowmissing!(df, :rwthh)
+        df.rwthh[1] = missing
+        nt = merge(nt, (data=df, subset=nothing))
+        ret = checkdata!(nt...)
+        @test ret.esample == (hrs.rwthh.>0) .& (.!ismissing.(df.rwthh))
+
         nt = merge(nt, (data=rand(10,10),))
         @test_throws ArgumentError checkdata!(nt...)
-
         nt = merge(nt, (data=[(a=1, b=2), (a=1, b=2)],))
         @test_throws ArgumentError checkdata!(nt...)
-
         nt = merge(nt, (data=hrs, subset=BitArray(hrs.male[1:100])))
         @test_throws DimensionMismatch checkdata!(nt...)
-
         nt = merge(nt, (subset=falses(size(hrs,1)),))
         @test_throws ErrorException checkdata!(nt...)
     end
@@ -106,10 +110,13 @@ end
         allowmissing!(df, :wave)
         df.wave .= ifelse.((df.wave_hosp.==Date(8)).&(df.wave.∈((Date(7), Date(8)),)),
             missing, df.wave)
-        nt = merge(nt, (esample=trues(N),))
+        nt = merge(nt, (esample=trues(N), pr=nevertreated(Date(11))))
         ret = checkvars!(nt...)
-        @test ret.esample == (df.wave_hosp.∈((Date(8),Date(11)),)).&
-            ((isequal.(df.wave, Date(9))).|(isequal.(df.wave, Date(10))))
+        @test ret.esample == (df.wave_hosp.∈((Date(8),Date(11)),)).& (.!(hrs.wave.∈((7,8),)))
+        @test ret.tr_rows == ret.esample.&(df.wave_hosp.!=Date(11))
+        nt = merge(nt, (esample=trues(N), pr=notyettreated(Date(11))))
+        ret = checkvars!(nt...)
+        @test ret.esample == (df.wave_hosp.∈((Date(8),Date(11)),)).& (hrs.wave.∈((9,10),))
         @test ret.tr_rows == ret.esample.&(df.wave_hosp.!=Date(11))
 
         df = DataFrame(hrs)
@@ -119,13 +126,12 @@ end
         e = rotatingtime((1,2), 11)
         nt = merge(nt, (data=df, tr=dynamic(:wave, -1), pr=nevertreated(e), treatintterms=TermSet(), xterms=TermSet(), esample=trues(N)))
         ret1 = checkvars!(nt...)
-        @test ret1 == (esample=trues(N), tr_rows=getfield.(df.wave_hosp, :time).!=11)
+        @test ret1 == (esample=trues(N), tr_rows=hrs.wave_hosp.!=11)
         df.wave_hosp = rotatingtime(2, hrs.wave_hosp)
         df.wave = rotatingtime(2, hrs.wave)
         nt = merge(nt, (esample=trues(N), pr=notyettreated(e),))
         ret2 = checkvars!(nt...)
-        @test ret2 == (esample=getfield.(df.wave, :time).!=11,
-            tr_rows=(getfield.(df.wave_hosp, :time).!=11).&(getfield.(df.wave, :time).!=11))
+        @test ret2 == (esample=hrs.wave.!=11, tr_rows=(hrs.wave_hosp.!=11).&(hrs.wave.!=11))
 
         df.wave = settime(Date.(hrs.wave), step=Year(1), rotation=rot)
         df.wave_hosp = rotatingtime(rot, Date.(hrs.wave_hosp))
@@ -137,15 +143,15 @@ end
         @test checkvars!(nt...) == ret2
 
         allowmissing!(df, :wave_hosp)
-        df.wave_hosp .= ifelse.(getfield.(df.wave_hosp, :time).==Date(8),
-            missing, df.wave_hosp)
-        nt = merge(nt, (esample=trues(N),))
+        df.wave_hosp .= ifelse.(hrs.wave_hosp.==8, missing, df.wave_hosp)
+        nt = merge(nt, (esample=trues(N), pr=nevertreated(e)))
         ret = checkvars!(nt...)
-        @test ret.esample == .!ismissing.(df.wave_hosp).&
-            (getfield.(df.wave, :time).!=Date(11))
-        @test ret.tr_rows == ret.esample.&
-            (.!isequal.(df.wave_hosp, rotatingtime(1, Date(11)))).&
-            (.!isequal.(df.wave_hosp, rotatingtime(2, Date(11))))
+        @test ret.esample == (hrs.wave_hosp.!=8)
+        @test ret.tr_rows == ret.esample.&(hrs.wave_hosp.!=11)
+        nt = merge(nt, (esample=trues(N), pr=notyettreated(e)))
+        ret = checkvars!(nt...)
+        @test ret.esample == (hrs.wave_hosp.!=8).&(hrs.wave.!=11)
+        @test ret.tr_rows == ret.esample.&(hrs.wave_hosp.!=11)
     end
 
     @testset "StatsStep" begin

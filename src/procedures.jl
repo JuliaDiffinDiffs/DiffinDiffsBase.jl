@@ -22,12 +22,12 @@ function checkdata!(data, subset::Union{BitVector, Nothing}, weightname::Union{S
 
     if weightname !== nothing
         colweights = getcolumn(data, weightname)
-        aux .= colweights .> 0
-        esample .&= aux
         if Missing <: eltype(colweights)
             aux .= .!ismissing.(colweights)
             esample .&= aux
         end
+        aux[esample] .= view(colweights, esample) .> 0
+        esample[esample] .&= view(aux, esample)
     end
     sum(esample) == 0 && error("no nonmissing data")
     return (esample=esample, aux=aux)
@@ -85,7 +85,7 @@ function checktreatvars(::DynamicTreatment{SharpDesign}, pr::TrendParallel{Uncon
     if col1 isa ScaledArrOrSub
         first(DataAPI.refpool(col1)) == first(DataAPI.refpool(col2)) &&
             scale(col1) == scale(col2) || throw(ArgumentError(
-                "time values in columns $(treatvars[1]) and $(treatvars[2]) are not aligned; see aligntime"))
+            "time values in columns $(treatvars[1]) and $(treatvars[2]) are not aligned; see aligntime"))
     end
 end
 
