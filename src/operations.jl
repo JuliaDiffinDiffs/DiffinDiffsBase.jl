@@ -185,7 +185,7 @@ end
     aligntime(data, colname::Union{Symbol,Integer}, timename::Union{Symbol,Integer})
 
 Convert a column of time values indexed by `colname` from `data` table
-to a [`ScaledArray`](@ref)
+to a [`ScaledArray`](@ref) with a `pool`
 that has the same first element and step size as the `pool` from
 the [`ScaledArray`](@ref) indexed by `timename`.
 See also [`settime`](@ref).

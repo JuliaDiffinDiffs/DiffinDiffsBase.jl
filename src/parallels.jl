@@ -85,6 +85,25 @@ assume a parallel trends assumption holds over all the relevant time periods.
 abstract type TrendParallel{C,S} <: AbstractParallel{C,S} end
 
 """
+    istreated(pr::TrendParallel, x)
+
+Test whether `x` represents the treatment time
+for a group of units that are not treated.
+See also [`istreated!`](@ref).
+"""
+function istreated end
+
+"""
+    istreated!(out::AbstractVector{Bool}, pr::TrendParallel, x::AbstractArray)
+
+For each element in `x`,
+test whether it represents the treatment time
+for a group of units that are not treated and save the result in `out`.
+See also [`istreated`](@ref).
+"""
+function istreated! end
+
+"""
     NeverTreatedParallel{C,S} <: TrendParallel{C,S}
 
 Assume a parallel trends assumption holds between any group
@@ -108,23 +127,8 @@ struct NeverTreatedParallel{C,S} <: TrendParallel{C,S}
     end
 end
 
-"""
-    istreated(pr::TrendParallel, x)
-
-Test whether `x` represents the treatment time
-for a group of units that are not treated.
-See also [`istreated!`](@ref).
-"""
 istreated(pr::NeverTreatedParallel, x) = !(x in pr.e)
 
-"""
-    istreated!(out::AbstractVector{Bool}, pr::NeverTreatedParallel, x::AbstractArray)
-
-For each element in `x`,
-test whether it represents the treatment time
-for a group of units that are not treated and save the result in `out`.
-See also [`istreated`](@ref).
-"""
 function istreated!(out::AbstractVector{Bool}, pr::NeverTreatedParallel,
         x::AbstractArray{<:Union{ValidTimeType, Missing}})
     e = Set(pr.e)
