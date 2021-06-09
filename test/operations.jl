@@ -56,32 +56,51 @@ end
 
 @testset "settime aligntime" begin
     hrs = exampledata("hrs")
-    t = settime(hrs, :wave, step=2, reftype=Int16)
+    t = settime(hrs.wave, 2, reftype=Int16)
     @test eltype(refarray(t)) == Int16
     @test sort!(unique(refarray(t))) == 1:3
-    t = settime(hrs, :wave, step=0.5)
+    t = settime(hrs.wave, 0.5)
     @test eltype(t) == Float64
 
-    t = settime(hrs, :wave, rotation=isodd.(hrs.wave))
+    rot = isodd.(hrs.wave)
+    t = settime(hrs.wave, rotation=rot)
     @test eltype(t) == RotatingTimeValue{Bool, eltype(hrs.wave)}
-    @test eltype(refarray(t)) == RotatingTimeValue{Bool, Int32}
-    @test all(x->x.rotation==isodd(x.time), t.refs)
+    @test refpool(t) === nothing
+    @test eltype(refarray(t.time)) == Int32
+    @test t.rotation == rot
+    @test t.time == hrs.wave
 
     df = DataFrame(hrs)
     df.wave1 = Date.(df.wave)
-    t = settime(df, :wave1, step=Year(1))
+    t = settime(df.wave1, Year(1))
     @test t == df.wave1
     @test t.pool == Date(7):Year(1):Date(11)
 
-    df.t1 = settime(df, :wave, step=1)
-    df.t2 = settime(df, :wave, step=2)
+    t = settime(df.wave1, Year(1), rotation=rot)
+    @test eltype(t) == RotatingTimeValue{Bool, eltype(df.wave1)}
+    @test eltype(refarray(t.time)) == Int32
+    @test t.time isa ScaledArray
+
+    df.t1 = settime(df.wave, 1)
+    df.t2 = settime(df.wave, 2)
     t = aligntime(df, :t2, :t1)
     @test t == df.t2
     @test t.pool == df.t1.pool
-    df.t2 = settime(df, :wave, start=0, stop=20)
+    @test t.invpool == df.t1.invpool
+    df.t2 = settime(df.wave, start=0, stop=20)
     t = aligntime(df, :t2, :t1)
     @test t == df.t2
     @test t.pool == df.t1.pool
+
+    t1 = settime(df.wave1, Year(1), rotation=rot)
+    t2 = settime(df.wave1, Year(1), start=Date(5))
+    t = aligntime(t2, t1)
+    @test t == t1
+    @test t.time.pool == t1.time.pool
+    t2 = settime(df.wave1, Year(1), start=Date(5), rotation=rot)
+    t = aligntime(t2, t1)
+    @test t == t1
+    @test t.time.pool == t1.time.pool
 end
 
 @testset "PanelStructure" begin
