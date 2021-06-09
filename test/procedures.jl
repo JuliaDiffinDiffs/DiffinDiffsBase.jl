@@ -144,6 +144,17 @@ end
         ret2 = checkvars!(nt...)
         @test ret2 == (esample=hrs.wave.!=11, tr_rows=(hrs.wave_hosp.!=11).&(hrs.wave.!=11))
 
+        # RotatingTimeArray with time field of type Array
+        df.wave_hosp = RotatingTimeArray(rot, hrs.wave_hosp)
+        df.wave = RotatingTimeArray(rot, hrs.wave)
+        e = rotatingtime((1,2), (10,11))
+        nt = merge(nt, (esample=trues(N), pr=notyettreated(e)))
+        ret3 = checkvars!(nt...)
+        ret3e = (hrs.wave.!=11).&(.!((hrs.wave.==10).&(rot.==1))).&
+            (.!((hrs.wave_hosp.==11).&(rot.==1)))
+        @test ret3 == (esample=ret3e, tr_rows=ret3e.&
+            (hrs.wave_hosp.!=11).&(.!((hrs.wave_hosp.==10).&(rot.==1))))
+
         df.wave = settime(Date.(hrs.wave), Year(1), rotation=rot)
         df.wave_hosp = settime(Date.(hrs.wave_hosp), Year(1), start=Date(7), rotation=rot)
         e = rotatingtime((1,2), Date(11))

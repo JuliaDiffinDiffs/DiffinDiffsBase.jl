@@ -66,7 +66,7 @@ Base.iterate(x::RotatingTimeValue, ::Any) = nothing
 
 Base.length(x::RotatingTimeValue) = 1
 
-show(io::IO, x::RotatingTimeValue) = print(io, '[', x.rotation, "]:", x.time)
+show(io::IO, x::RotatingTimeValue) = print(io, x.rotation, '_', x.time)
 function show(io::IO, ::MIME"text/plain", x::RotatingTimeValue)
     println(io, typeof(x), ':')
     println(io, "  rotation: ", x.rotation)
@@ -102,8 +102,13 @@ Base.IndexStyle(::Type{<:RotatingTimeArray{<:Any,<:Any,<:Any,I}}) where I =
     I === Int ? IndexLinear() : IndexCartesian()
 
 Base.@propagate_inbounds Base.getindex(a::RotatingTimeArray, i::Int) = _getarray(a)[i]
+Base.@propagate_inbounds Base.getindex(a::RotatingTimeArray, I) =
+    RotatingTimeArray(_getarray(a).rotation[I], _getarray(a).time[I])
+
 Base.@propagate_inbounds Base.setindex!(a::RotatingTimeArray, v, i::Int) =
     setindex!(_getarray(a), v, i)
+Base.@propagate_inbounds Base.setindex!(a::RotatingTimeArray, v, I) =
+    setindex!(_getarray(a), v, I)
 
 @inline Base.view(a::RotatingTimeArray, I...) = RotatingTimeArray(view(_getarray(a), I...))
 

@@ -47,7 +47,7 @@
     @test iterate(rt1, 1) === nothing
     @test length(rt1) == 1
 
-    @test sprint(show, rt[1]) == "[5]:1"
+    @test sprint(show, rt[1]) == "5_1"
     w = VERSION < v"1.6.0" ? "" : " "
     @test sprint(show, MIME("text/plain"), rt[1]) == """
         RotatingTimeValue{Int64,$(w)Int64}:
@@ -64,8 +64,12 @@ end
     @test IndexStyle(typeof(a)) == IndexLinear()
 
     @test a[1] == RotatingTimeValue(1, 1.0)
+    @test a[5:-1:1] == RotatingTimeArray(rot[5:-1:1], time[5:-1:1])
+
     a[1] = RotatingTimeValue(2, 2.0)
     @test a[1] == RotatingTimeValue(2, 2.0)
+    a[5:-1:1] .= RotatingTimeValue(2, 2.0)
+    @test all(a .== RotatingTimeValue(2, 2.0))
 
     v = view(a, 2:4)
     @test v isa RotatingTimeArray
