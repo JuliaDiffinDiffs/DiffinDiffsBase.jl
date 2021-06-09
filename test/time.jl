@@ -68,8 +68,8 @@ end
 
     a[1] = RotatingTimeValue(2, 2.0)
     @test a[1] == RotatingTimeValue(2, 2.0)
-    a[5:-1:1] .= RotatingTimeValue(2, 2.0)
-    @test all(a .== RotatingTimeValue(2, 2.0))
+    a[1:2] = a[3:4]
+    @test a[1:2] == a[3:4]
 
     v = view(a, 2:4)
     @test v isa RotatingTimeArray

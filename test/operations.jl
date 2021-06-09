@@ -44,14 +44,24 @@ end
     @test rows[1] == intersect(findall(x->x==7, hrs.wave), findall(x->x==8, hrs.wave_hosp))
 
     df = DataFrame(hrs)
-    df.wave = ScaledArray(df.wave, 1)
-    df.wave_hosp = ScaledArray(df.wave_hosp, 1)
+    df.wave = ScaledArray(hrs.wave, 1)
+    df.wave_hosp = ScaledArray(hrs.wave_hosp, 1)
     cols1 = subcolumns(df, (:wave, :wave_hosp))
     cells1, rows1 = cellrows(cols1, rows_dict)
     @test rows1 == rows
     @test cells1 == cells
     @test cells1.wave isa ScaledArray
     @test cells1.wave_hosp isa ScaledArray
+
+    rot = ones(size(df, 1))
+    df.wave = RotatingTimeArray(rot, hrs.wave)
+    df.wave_hosp = RotatingTimeArray(rot, hrs.wave_hosp)
+    cols2 = subcolumns(df, (:wave, :wave_hosp))
+    cells2, rows2 = cellrows(cols2, rows_dict)
+    @test rows2 == rows
+    @test cells2 == cells
+    @test cells2.wave isa RotatingTimeArray
+    @test cells2.wave_hosp isa RotatingTimeArray
 end
 
 @testset "settime aligntime" begin
