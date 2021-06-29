@@ -13,6 +13,17 @@
     end
 end
 
+@testset "unspecifiedpr" begin
+    us = UnspecifiedParallel()
+    @test unspecifiedpr() === us
+    @test unspecifiedpr(Unconditional()) === us
+    @test unspecifiedpr(Unconditional(), Exact()) === us
+
+    @test sprint(show, us) == "Unspecified{U,P}"
+    @test sprint(show, MIME("text/plain"), us) ==
+        "Parallel among unspecified treatment groups"
+end
+
 @testset "nevertreated" begin
     nt0 = NeverTreatedParallel([0], Unconditional(), Exact())
     nt0y = NeverTreatedParallel(Date(0), Unconditional(), Exact())
@@ -193,6 +204,12 @@ end
 end
 
 @testset "istreated istreated!" begin
+    us = unspecifiedpr()
+    @test istreated(us, 0) == true
+    out = BitVector(undef, 3)
+    x = [1, -1, missing]
+    @test all(istreated!(out, us, x))
+
     nt = nevertreated(-1)
     @test istreated(nt, -1) == false
     @test istreated(nt, 0)
@@ -223,6 +240,7 @@ end
 @testset "termvars" begin
     @test termvars(Unconditional()) == Symbol[]
     @test termvars(Exact()) == Symbol[]
+    @test termvars(unspecifiedpr()) == Symbol[]
     @test termvars(nevertreated(-1)) == Symbol[]
     @test termvars(notyettreated(5)) == Symbol[]
 
