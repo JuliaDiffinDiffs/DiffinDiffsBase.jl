@@ -81,8 +81,7 @@ function _checkscales(col1::AbstractArray, col2::AbstractArray, treatvars::Vecto
 end
 
 function checktreatvars(::DynamicTreatment{SharpDesign},
-        pr::Union{TrendParallel{Unconditional}, UnspecifiedParallel{Unconditional}},
-        treatvars::Vector{Symbol}, data)
+        pr::TrendOrUnspecifiedPR{Unconditional}, treatvars::Vector{Symbol}, data)
     # treatvars should be cohort and time variables
     col1 = getcolumn(data, treatvars[1])
     col2 = getcolumn(data, treatvars[2])

@@ -102,9 +102,9 @@ end
         nt = merge(nt, (pr=nevertreated(11), esample=trues(N)))
         @test checkvars!(nt...) == (esample=trues(N), tr_rows=hrs.wave_hosp.!=11)
         df.male .= ifelse.(hrs.wave_hosp.==10, missing, df.male)
-        @test checkvars!(nt...) == (esample=df.wave_hosp.!=10, tr_rows=hrs.wave_hosp.∈((8,9),))
+        @test checkvars!(nt...) == (esample=hrs.wave_hosp.!=10, tr_rows=hrs.wave_hosp.∈((8,9),))
         df.white = ifelse.(hrs.wave_hosp.==9, missing, df.white.+0.5)
-        ret = (esample=df.wave_hosp.∈((8,11),), tr_rows=hrs.wave_hosp.==8)
+        ret = (esample=hrs.wave_hosp.∈((8,11),), tr_rows=hrs.wave_hosp.==8)
         @test checkvars!(nt...) == ret
 
         df.wave_hosp = Date.(df.wave_hosp)

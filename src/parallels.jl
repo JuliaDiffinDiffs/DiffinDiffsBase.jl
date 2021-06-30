@@ -105,15 +105,11 @@ end
 """
     unspecifiedpr(c::ParallelCondition=Unconditional(), s::ParallelStrength=Exact())
 
-Construct a [`UnspecifiedParallel`](@ref) with fields set by the arguments.
-This is an alias of the default constructor of [`UnspecifiedParallel`](@ref).
+Construct an [`UnspecifiedParallel`](@ref) with fields set by the arguments.
+This is an alias of the inner constructor of [`UnspecifiedParallel`](@ref).
 """
 unspecifiedpr(c::ParallelCondition=Unconditional(), s::ParallelStrength=Exact()) =
     UnspecifiedParallel(c, s)
-
-istreated(pr::UnspecifiedParallel, x) = true
-istreated!(out::AbstractVector{Bool}, ::UnspecifiedParallel, x::AbstractArray) =
-    (fill!(out, true); return out)
 
 show(io::IO, pr::UnspecifiedParallel) =
     print(IOContext(io, :compact=>true), "Unspecified{", pr.c, ",", pr.s, "}")
@@ -130,6 +126,13 @@ Supertype for all parallel types that
 assume a parallel trends assumption holds over all the relevant time periods.
 """
 abstract type TrendParallel{C,S} <: AbstractParallel{C,S} end
+
+"""
+    TrendOrUnspecifiedPR{C,S}
+
+Union type of [`TrendParallel{C,S}`](@ref) and [`UnspecifiedParallel{C,S}`](@ref).
+"""
+const TrendOrUnspecifiedPR{C,S} = Union{TrendParallel{C,S}, UnspecifiedParallel{C,S}}
 
 """
     istreated(pr::TrendParallel, x)
