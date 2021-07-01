@@ -47,7 +47,7 @@ default(::CheckData) = (subset=nothing, weightname=nothing)
 """
     grouptreatintterms(treatintterms)
 
-Return the arguments for allowing later comparisons based on object-id.
+Return the argument without change for allowing later comparisons based on object-id.
 See also [`GroupTreatintterms`](@ref).
 """
 grouptreatintterms(treatintterms::TermSet) = (treatintterms=treatintterms,)
@@ -57,7 +57,7 @@ grouptreatintterms(treatintterms::TermSet) = (treatintterms=treatintterms,)
 
 Call [`DiffinDiffsBase.grouptreatintterms`](@ref)
 to obtain one of the instances of `treatintterms`
-that have been grouped by `==`
+that have been grouped by equality (`hash`)
 for allowing later comparisons based on object-id.
 
 This step is only useful when working with [`@specset`](@ref) and [`proceed`](@ref).
@@ -69,7 +69,7 @@ default(::GroupTreatintterms) = (treatintterms=TermSet(),)
 """
     groupxterms(xterms)
 
-Return the arguments for allowing later comparisons based on object-id.
+Return the argument without change for allowing later comparisons based on object-id.
 See also [`GroupXterms`](@ref).
 """
 groupxterms(xterms::TermSet) = (xterms=xterms,)
@@ -79,7 +79,7 @@ groupxterms(xterms::TermSet) = (xterms=xterms,)
 
 Call [`DiffinDiffsBase.groupxterms`](@ref)
 to obtain one of the instances of `xterms`
-that have been grouped by `==`
+that have been grouped by equality (`hash`)
 for allowing later comparisons based on object-id.
 
 This step is only useful when working with [`@specset`](@ref) and [`proceed`](@ref).
@@ -238,9 +238,9 @@ combinedargs(::CheckVars, allntargs, ::Type{DynamicTreatment{SharpDesign}}) =
 copyargs(::CheckVars) = (5,)
 
 """
-    groupsample(args...)
+    groupsample(esample)
 
-Return the arguments for allowing later comparisons based on object-id.
+Return the argument without change for allowing later comparisons based on object-id.
 See also [`GroupSample`](@ref).
 """
 groupsample(esample::BitVector) = (esample=esample,)
@@ -250,7 +250,7 @@ groupsample(esample::BitVector) = (esample=esample,)
 
 Call [`DiffinDiffsBase.groupsample`](@ref)
 to obtain one of the instances of `esample`
-that have been grouped by `==`
+that have been grouped by equality (`hash`)
 for allowing later comparisons based on object-id.
 
 This step is only useful when working with [`@specset`](@ref) and [`proceed`](@ref).
