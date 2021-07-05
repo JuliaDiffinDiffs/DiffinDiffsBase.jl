@@ -840,15 +840,16 @@ Set the default [`ExportFormat`](@ref) for [`post!`](@ref).
 setexportformat!(format::ExportFormat) = (DefaultExportFormat[1] = format)
 
 """
-    post!(f, r::AbstractDIDResult; kwargs...)
+    post!(f, r; kwargs...)
 
 Export result `r` in a default [`ExportFormat`](@ref).
 
 The default format can be retrieved via [`getexportformat`](@ref)
 and modified via [`setexportformat!`](@ref).
-The keyword arguments that can be accepted depend on the format.
+The keyword arguments that can be accepted depend on the format
+and the type of `r`.
 """
-post!(f, r::AbstractDIDResult; kwargs...) =
+post!(f, r; kwargs...) =
     post!(f, getexportformat(), r; kwargs...)
 
 _statafield(v::Symbol) = string(v)
