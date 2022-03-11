@@ -1,3 +1,10 @@
+> ⚠️ **Attention: This package is moved**
+> 
+> DiffinDiffsBase.jl has been migrated to the new location [here](https://github.com/JuliaDiffinDiffs/DiffinDiffs.jl/tree/master/lib/DiffinDiffsBase)
+> within the repo for
+> [DiffinDiffs.jl](https://github.com/JuliaDiffinDiffs/DiffinDiffs.jl).
+> Development will only happen there and this repo is archived.
+
 # DiffinDiffsBase.jl
 
 *Base package for [DiffinDiffs.jl](https://github.com/JuliaDiffinDiffs/DiffinDiffs.jl)*
